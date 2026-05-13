@@ -44,3 +44,16 @@ export const CHART_COLORS = [
   "#FB923C", // orange-400
   "#A3E635", // lime-400
 ] as const;
+
+// Canonical per-node color — ordered to match the default node selection so
+// PriceChart, PriceKPIs, and RTDPriceMap all render the same node in the same color.
+export const NODE_COLOR_MAP: Record<string, string> = {
+  OTA2201: CHART_COLORS[0],
+  HAY2201: CHART_COLORS[1],
+  BEN2201: CHART_COLORS[2],
+  WKM2201: CHART_COLORS[3],
+  ISL2201: CHART_COLORS[4],
+  STK0111: CHART_COLORS[5],
+  MRT2201: CHART_COLORS[6],
+  TAU2201: CHART_COLORS[7],
+};

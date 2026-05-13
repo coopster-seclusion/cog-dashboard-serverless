@@ -1,5 +1,5 @@
 import { usePrices } from "@/hooks/useWITS";
-import { CHART_COLORS } from "@/lib/nivoTheme";
+import { CHART_COLORS, NODE_COLOR_MAP } from "@/lib/nivoTheme";
 import { WidgetSkeleton } from "@/components/layout/WidgetCard";
 
 function ErrorState({ message }: { message: string }) {
@@ -36,7 +36,7 @@ export default function PriceKPIs() {
 
     return {
       nodeId,
-      color: CHART_COLORS[i] ?? "#505050",
+      color: NODE_COLOR_MAP[nodeId] ?? CHART_COLORS[i] ?? "#505050",
       price: latest?.price ?? null,
       delta,
     };

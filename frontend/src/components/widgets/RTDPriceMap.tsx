@@ -1,4 +1,5 @@
 import { usePrices } from "@/hooks/useWITS";
+import { NODE_COLOR_MAP } from "@/lib/nivoTheme";
 import { WidgetSkeleton } from "@/components/layout/WidgetCard";
 import { geoMercator, geoPath } from "d3-geo";
 import nzGeoJson from "./new-zealand.json";
@@ -12,13 +13,6 @@ const NODE_COORDINATES: Record<string, [number, number]> = {
   BEN2201: [170.19, -44.57], // Benmore
 };
 
-const NODE_COLORS: Record<string, string> = {
-  OTA2201: "#FF5722",
-  WKM2201: "#9C27B0",
-  HAY2201: "#00BCD4",
-  ISL2201: "#4CAF50",
-  BEN2201: "#FFC107",
-};
 
 const MAP_NODES = Object.keys(NODE_COORDINATES);
 
@@ -139,7 +133,7 @@ export default function RTDPriceMap() {
             const projected = projection(NODE_COORDINATES[nodeId]);
             if (!projected) return null;
             const [dotX, dotY] = projected;
-            const color = NODE_COLORS[nodeId];
+            const color = NODE_COLOR_MAP[nodeId] ?? "#505050";
             const chipY = LABEL_Y[nodeId];
             const price = nodePrices[nodeId]?.price;
 

@@ -42,17 +42,17 @@ export default function NodeTicker({ nodeId }: NodeTickerProps) {
   const nodeData = data.nodes[nodeId];
   if (!nodeData) return <ErrorState message={`No data for ${nodeId}`} />;
 
-  // Build sorted pairs, most recent last, take last 3
+  // Build sorted pairs, newest first, take 3
   const pairs = nodeData.timestamps
     .map((ts, i) => ({ ts, price: nodeData.prices[i] }))
     .filter((p) => p.ts != null && p.price != null)
-    .sort((a, b) => new Date(a.ts!).getTime() - new Date(b.ts!).getTime())
-    .slice(-3);
+    .sort((a, b) => new Date(b.ts!).getTime() - new Date(a.ts!).getTime())
+    .slice(0, 3);
 
   return (
     <div className="divide-y divide-[#1A1A1A]">
       {pairs.map(({ ts, price }, i) => {
-        const prev = pairs[i - 1];
+        const prev = pairs[i + 1];
         const delta = prev?.price != null ? price! - prev.price! : null;
         const up = delta != null && delta > 0;
         const down = delta != null && delta < 0;

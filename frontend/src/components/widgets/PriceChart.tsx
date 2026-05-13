@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Lock } from "lucide-react";
 import { ResponsiveLine } from "@nivo/line";
 import { usePrices } from "@/hooks/useWITS";
-import { nivoTheme, CHART_COLORS } from "@/lib/nivoTheme";
+import { nivoTheme, CHART_COLORS, NODE_COLOR_MAP } from "@/lib/nivoTheme";
 import { WidgetSkeleton } from "@/components/layout/WidgetCard";
 import { cn } from "@/lib/utils";
 import { SCHEDULES_BY_TIME_RANGE, SCHEDULE_CONFIG, type ScheduleKey } from "@/lib/scheduleConfig";
@@ -67,7 +67,7 @@ function buildSeries(data: PricesResponse): NivoSeries[] {
       });
     return {
       id: nodeId,
-      color: CHART_COLORS[i] ?? "#505050",
+      color: NODE_COLOR_MAP[nodeId] ?? CHART_COLORS[i] ?? "#505050",
       data: pairs.map(({ ts, price }, j) => ({ x: ts ?? String(j), y: price })),
     };
   });
