@@ -55,9 +55,9 @@ cog-dashboard-ui/
 │   │   │       ├── PriceKPIs.tsx     # ✓ Latest $/MWh per node + delta
 │   │   │       ├── PriceSpread.tsx   # ✓ HAY−BEN spread line + area fill
 │   │   │       ├── ScheduleOverlay.tsx # ✓ RTD vs PRSL overlay
-│   │   │       ├── IslandBalance.tsx # stub — Phase 2
-│   │   │       ├── IntermittentShare.tsx # stub — Phase 2
-│   │   │       └── ForwardCurve.tsx  # stub — Phase 2
+│   │   │       ├── IslandBalance.tsx    # ✓ Grouped bar — NI/SI gen vs load
+│   │   │       ├── IntermittentShare.tsx # ✓ % intermittent line chart per island
+│   │   │       └── ForwardCurve.tsx     # ✓ PRSL forward 7 TPs line chart
 │   │   ├── context/
 │   │   │   └── DashboardContext.tsx  # Global filter state (schedule, nodes, timeRange…)
 │   │   ├── hooks/
@@ -330,13 +330,13 @@ Key values: `background: "transparent"`, grid lines `#1E1E1E`, crosshair `#E3193
 | NI/SI price spread | `PriceSpread.tsx` | ✓ Built | `GET /api/prices/spread` — HAY−BEN line + area fill |
 | RTD vs pre-dispatch | `ScheduleOverlay.tsx` | ✓ Built | Two `usePrices()` calls pinned to RTD + PRSL |
 
-### Phase 2 — Quantities (Quantities page)
+### Phase 2 — Quantities (Quantities page) ✓ Complete
 
 | Widget | File | Status | Data |
 |---|---|---|---|
-| Island generation vs load | `IslandBalance.tsx` | stub | `GET /api/quantities/energy` — grouped bar NI vs SI |
-| Intermittent generation % | `IntermittentShare.tsx` | stub | Same endpoint — `intermittentGeneration / generation` |
-| Forward price curve | `ForwardCurve.tsx` | stub | `GET /api/prices` with `forward=7`, PRSL schedule |
+| Island generation vs load | `IslandBalance.tsx` | ✓ Built | `GET /api/quantities/energy` — grouped bar NI vs SI |
+| Intermittent generation % | `IntermittentShare.tsx` | ✓ Built | Same endpoint — `intermittentGeneration / generation` |
+| Forward price curve | `ForwardCurve.tsx` | ✓ Built | `GET /api/prices` with `forward=7`, PRSL schedule |
 
 ### Phase 3 — Reserves
 
