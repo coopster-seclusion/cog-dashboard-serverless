@@ -10,7 +10,7 @@ function ErrorState() {
 }
 
 export default function SIReserves() {
-  const { data, isLoading } = useReserveQuantities("", {
+  const { data, isLoading } = useReserveQuantities("InstantaneousReserve", {
     schedule: "PRSS",
     back: 1,
     island: "SI",
@@ -25,15 +25,11 @@ export default function SIReserves() {
   const latestRecords = data.records.filter((r) => r.trading_period === latestTP);
 
   const fastMW = latestRecords
-    .filter((r) => r.reserve_class?.toLowerCase() === "fast")
+    .filter((r) => r.reserve_class?.toUpperCase() === "F")
     .reduce((sum, r) => sum + (r.reserve_mw ?? 0), 0);
 
   const sustainedMW = latestRecords
-    .filter(
-      (r) =>
-        r.reserve_class?.toLowerCase() === "sustained" ||
-        r.reserve_class?.toLowerCase() === "slow",
-    )
+    .filter((r) => r.reserve_class?.toUpperCase() === "S")
     .reduce((sum, r) => sum + (r.reserve_mw ?? 0), 0);
 
   const hasData = latestRecords.length > 0;
