@@ -1,5 +1,6 @@
 import { ResponsiveLine } from "@nivo/line";
 import { usePrices } from "@/hooks/useWITS";
+import { useDashboard } from "@/context/WITSContext";
 import { nivoTheme, CHART_COLORS } from "@/lib/nivoTheme";
 import { WidgetSkeleton } from "@/components/layout/WidgetCard";
 import type { PricesResponse } from "@/lib/api";
@@ -81,16 +82,35 @@ function ErrorState({ message }: { message: string }) {
 }
 
 export default function ScheduleOverlay() {
+  const { state } = useDashboard();
+  const overlayAvailable = state.timeRange === "LIVE" || state.timeRange === "1H";
+
   // Always pin RTD and PRSL regardless of the global schedule selector.
   // PRSL gets forward=6 (3 hours ahead). from/to are cleared so a CUSTOM
   // time range in context doesn't create an invalid back+from conflict.
-  const { data: rtdData, isLoading: l1, error: e1 } = usePrices({ schedule: "RTD" });
-  const { data: prslData, isLoading: l2 } = usePrices({
-    schedule: "PRSL",
-    forward: 6,
-    from: undefined,
-    to: undefined,
-  });
+  const { data: rtdData, isLoading: l1, error: e1 } = usePrices(
+    { schedule: "RTD" },
+    overlayAvailable,
+  );
+  const { data: prslData, isLoading: l2 } = usePrices(
+    { schedule: "PRSL", forward: 6, from: undefined, to: undefined },
+    overlayAvailable,
+  );
+
+  // Gate: only available in LIVE or 1H mode
+  if (!overlayAvailable) {
+    return (
+      <div className="flex items-center justify-center h-[282px] px-6 text-center">
+        <p className="text-[11px] font-mono text-[#505050]">
+          RTD vs Pre-Dispatch overlay is available in LIVE and 1H modes only.
+          <br />
+          <span className="text-[10px] text-[#303030]">
+            Select LIVE or 1H from the time range selector above.
+          </span>
+        </p>
+      </div>
+    );
+  }
 
   if (l1 || l2) return <WidgetSkeleton height={282} />;
   if (e1) return <ErrorState message={(e1 as Error).message} />;
@@ -147,31 +167,30 @@ export default function ScheduleOverlay() {
           sliceTooltip={OverlayTooltip as any}
           crosshairType="x"
           animate={false}
-          markers={
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          markers={(
             nowTs
               ? [
                   {
                     axis: "x",
                     value: nowTs,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     lineStyle: {
                       stroke: "#E31937",
                       strokeWidth: 1,
                       strokeOpacity: 0.5,
                       strokeDasharray: "3 4",
-                    } as any,
+                    },
                     legend: "NOW",
                     legendPosition: "top-right",
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     legendStyle: {
                       fill: "#505050",
                       fontSize: 9,
                       fontFamily: "Roboto Mono, monospace",
-                    } as any,
+                    },
                   },
                 ]
               : []
-          }
+          ) as any}
         />
       </div>
 

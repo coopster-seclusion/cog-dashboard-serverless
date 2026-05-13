@@ -11,28 +11,32 @@ import {
   type ReserveParams,
   type SpreadParams,
 } from "@/lib/api";
-import { useDashboard, type DashboardState } from "@/context/DashboardContext";
+import { useDashboard, type WITSState } from "@/context/WITSContext";
 
 // ---------------------------------------------------------------------------
 // Map timeRange + custom dates → back / from / to query params
 // ---------------------------------------------------------------------------
 
-function getTimeParams(state: DashboardState): {
+function getTimeParams(state: WITSState): {
   back?: number;
   from?: string;
   to?: string;
 } {
   if (state.timeRange === "CUSTOM") {
-    return { from: state.from, to: state.to };
+    return { from: state.customFrom, to: state.customTo };
+  }
+  if (state.timeRange === "7D") {
+    const to = new Date().toISOString();
+    const from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    return { from, to };
   }
   const backMap: Record<string, number> = {
-    LIVE: 7,
+    LIVE: 2,
     "1H": 2,
     "6H": 12,
     "24H": 48,
-    "7D": 48,
   };
-  return { back: backMap[state.timeRange] ?? 7 };
+  return { back: backMap[state.timeRange] ?? 2 };
 }
 
 // ---------------------------------------------------------------------------
@@ -42,7 +46,7 @@ function getTimeParams(state: DashboardState): {
 /**
  * Spot / pre-dispatch prices for one or more nodes.
  * Context supplies schedule, marketType, nodes, and time window.
- * Pass overrides to pin any param regardless of context (e.g. a specific schedule).
+ * Pass overrides to pin any param regardless of context.
  */
 export function usePrices(overrides: Partial<PricesParams> = {}, enabled = true) {
   const { state } = useDashboard();
@@ -64,8 +68,6 @@ export function usePrices(overrides: Partial<PricesParams> = {}, enabled = true)
 
 /**
  * Price spread between two explicit nodes.
- * nodeA / nodeB are required — they are not derived from context.
- * Context supplies schedule, marketType, and time window.
  */
 export function usePriceSpread(
   nodeA: string,
@@ -93,7 +95,6 @@ export function usePriceSpread(
 
 /**
  * Island generation / load quantities.
- * Context supplies schedule, island, and time window.
  */
 export function useEnergyQuantities(
   overrides: Partial<EnergyParams> = {},
@@ -117,8 +118,6 @@ export function useEnergyQuantities(
 
 /**
  * Reserve MW / price data.
- * runClass is required (e.g. "InstantaneousReserve") — not in global context.
- * Context supplies schedule, island, and time window.
  */
 export function useReserveQuantities(
   runClass: string,
@@ -142,7 +141,7 @@ export function useReserveQuantities(
   });
 }
 
-/** Schedule list — nearly static, no context dependency. */
+/** Schedule list — nearly static. */
 export function useSchedules() {
   return useQuery({
     queryKey: ["schedules"],
@@ -151,7 +150,7 @@ export function useSchedules() {
   });
 }
 
-/** Node list — static constant from backend, no context dependency. */
+/** Node list — static. */
 export function useNodes() {
   return useQuery({
     queryKey: ["nodes"],

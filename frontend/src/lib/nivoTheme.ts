@@ -1,6 +1,5 @@
-import type { Theme } from "@nivo/core";
-
-export const nivoTheme: Theme = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const nivoTheme: any = {
   background: "transparent",
   text: {
     fill: "#A0A0A0",

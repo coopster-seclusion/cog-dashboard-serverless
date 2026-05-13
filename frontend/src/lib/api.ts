@@ -147,7 +147,7 @@ export const fetchPrices = (params: PricesParams = {}) =>
   get<PricesResponse>(`${BASE}/prices`, params as QueryParams);
 
 export const fetchSpread = (params: SpreadParams) =>
-  get<SpreadResponse>(`${BASE}/prices/spread`, params as QueryParams);
+  get<SpreadResponse>(`${BASE}/prices/spread`, params as unknown as QueryParams);
 
 export const fetchSchedules = () =>
   get<SchedulesResponse>(`${BASE}/schedules`);
@@ -156,7 +156,7 @@ export const fetchNodes = () =>
   get<NodesResponse>(`${BASE}/nodes`);
 
 export const fetchEnergyQuantities = (params: EnergyParams) =>
-  get<EnergyQuantitiesResponse>(`${BASE}/quantities/energy`, params as QueryParams);
+  get<EnergyQuantitiesResponse>(`${BASE}/quantities/energy`, params as unknown as QueryParams);
 
 export const fetchReserveQuantities = (params: ReserveParams) =>
-  get<ReserveQuantitiesResponse>(`${BASE}/quantities/reserves`, params as QueryParams);
+  get<ReserveQuantitiesResponse>(`${BASE}/quantities/reserves`, params as unknown as QueryParams);
