@@ -337,25 +337,32 @@ class WITSClient:
 
         result: dict[str, dict] = {node: {"prices": [], "timestamps": []} for node in nodes}
 
-        # The response `prices` array contains per-record node identifiers.
-        # Walk the raw response to collect and group by node.
-        raw_prices = data["raw"].get("prices", [])
+        raw = data["raw"]
 
-        if raw_prices:
-            for rec in raw_prices:
-                node = rec.get("node")
-                if node in result:
-                    result[node]["prices"].append(rec.get("price"))
-                    result[node]["timestamps"].append(rec.get("tradingDateTime"))
+        # Try multiple common field names for the node identifier, using the same
+        # recursive _extract used for prices/timestamps so response structure doesn't matter.
+        raw_node_ids: list = []
+        for field in ("node", "nodeId", "poc", "pointOfConnection", "pricingNode"):
+            raw_node_ids = [str(n).strip() for n in self._extract(raw, field) if n]
+            if raw_node_ids:
+                break
+
+        raw_prices     = data["prices"]
+        raw_timestamps = data["timestamps"]
+
+        if raw_node_ids and len(raw_node_ids) == len(raw_prices) == len(raw_timestamps):
+            for node_id, price, ts in zip(raw_node_ids, raw_prices, raw_timestamps):
+                if node_id in result:
+                    result[node_id]["prices"].append(price)
+                    result[node_id]["timestamps"].append(ts)
         else:
-            # Fallback for unexpected response structure: distribute flat extracted data.
-            prices = data["prices"]
-            timestamps = data["timestamps"]
-            n = len(nodes)
-            chunk = len(prices) // max(n, 1)
-            for i, node in enumerate(nodes):
-                result[node]["prices"] = prices[i * chunk : (i + 1) * chunk]
-                result[node]["timestamps"] = timestamps[i * chunk : (i + 1) * chunk]
+            # Fallback: walk the raw "prices" array directly with per-record node matching.
+            for rec in (raw.get("prices") or []):
+                if isinstance(rec, dict):
+                    node_id = str(rec.get("node") or rec.get("nodeId") or "").strip()
+                    if node_id in result:
+                        result[node_id]["prices"].append(rec.get("price"))
+                        result[node_id]["timestamps"].append(rec.get("tradingDateTime"))
 
         return result
 

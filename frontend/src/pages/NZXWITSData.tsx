@@ -59,7 +59,7 @@ export default function NZXWITSData() {
       <WidgetCard
         title="RTD Price Map"
         live
-        colSpan={7}
+        colSpan={4}
       >
         <RTDPriceMap />
       </WidgetCard>
@@ -67,7 +67,7 @@ export default function NZXWITSData() {
       <WidgetCard
         title="Spot Prices"
         subtitle={`${state.schedule} · ${state.nodes.join(", ")}`}
-        colSpan={5}
+        colSpan={8}
       >
         <PriceChart />
       </WidgetCard>

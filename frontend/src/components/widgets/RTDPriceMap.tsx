@@ -1,55 +1,60 @@
 import { usePrices } from "@/hooks/useWITS";
 import { WidgetSkeleton } from "@/components/layout/WidgetCard";
+import { geoMercator, geoPath } from "d3-geo";
+import nzGeoJson from "./new-zealand.json";
 
-// Pre-mapped pixel positions in the SVG coordinate space (viewBox 0 0 420 500)
-const NODE_POSITIONS: Record<string, [number, number]> = {
-  OTA2201: [185, 148],
-  MRT2201: [188, 155],
-  WKM2201: [165, 188],
-  TAU2201: [185, 195],
-  STK0111: [143, 205],
-  HAY2201: [200, 268],
-  ISL2201: [170, 355],
-  BEN2201: [178, 390],
+// 5 working RTD nodes
+const NODE_COORDINATES: Record<string, [number, number]> = {
+  OTA2201: [174.85, -36.95], // Auckland
+  WKM2201: [175.80, -38.42], // Waikato
+  HAY2201: [174.98, -41.15], // Wellington
+  ISL2201: [172.49, -43.54], // Christchurch
+  BEN2201: [170.19, -44.57], // Benmore
 };
 
-// Label positions on the right side — kept clear of the island outline
-const LABEL_X = 255;
-const LABEL_POSITIONS: Record<string, number> = {
-  OTA2201: 136,
-  MRT2201: 153,
-  WKM2201: 180,
-  TAU2201: 197,
-  STK0111: 215,
-  HAY2201: 265,
-  ISL2201: 348,
-  BEN2201: 385,
+const NODE_COLORS: Record<string, string> = {
+  OTA2201: "#FF5722",
+  WKM2201: "#9C27B0",
+  HAY2201: "#00BCD4",
+  ISL2201: "#4CAF50",
+  BEN2201: "#FFC107",
 };
 
-// Simplified NZ outlines (viewBox 0 0 420 500)
-// North Island — clockwise from Northland tip
-const NI_PATH =
-  "M 183 82 L 193 95 L 200 112 L 203 130 L 202 148 " +
-  "L 208 160 L 215 172 L 218 185 L 216 200 " +
-  "L 218 215 L 215 232 L 218 248 L 215 262 " +
-  "L 208 272 L 200 268 " +
-  "L 190 278 L 178 285 L 165 280 " +
-  "L 155 268 L 150 252 L 148 238 " +
-  "L 142 222 L 135 208 " +
-  "L 138 195 L 143 185 L 148 175 " +
-  "L 150 162 L 155 150 " +
-  "L 160 140 L 162 130 L 165 118 L 170 102 L 175 90 Z";
+const MAP_NODES = Object.keys(NODE_COORDINATES);
 
-// South Island — clockwise from Farewell Spit (top-left)
-const SI_PATH =
-  "M 158 308 L 175 305 L 193 308 L 208 318 " +
-  "L 218 332 L 224 348 L 222 365 L 218 382 " +
-  "L 212 398 L 205 415 L 196 430 L 183 440 " +
-  "L 168 438 L 155 428 L 142 415 " +
-  "L 132 400 L 125 385 L 122 368 " +
-  "L 125 352 L 130 338 L 138 325 L 148 315 Z";
+// SVG canvas
+const W = 265;
+const H = 310;
 
-const MAP_NODES = Object.keys(NODE_POSITIONS);
+// Projection: NZ shifted left so the right strip is free for labels.
+// translate=[80,155] keeps the landmass in x≈15–160, y≈45–255.
+const projection = geoMercator()
+  .center([173, -41])
+  .scale(700)
+  .translate([80, 155]);
+
+const pathGenerator = geoPath().projection(projection);
+
+// Two-line label chips, all on the right column.
+// Chip left edge starts at CHIP_X; leader line runs from chip-left to the dot.
+// y positions are tuned so each chip centre aligns with the corresponding dot y:
+//   OTA dot ≈ (103,  91) → chip centre at y=78+13=91
+//   WKM dot ≈ (114, 114) → chip centre at y=101+13=114
+//   HAY dot ≈ (104, 158) → chip centre at y=145+13=158
+//   ISL dot ≈ ( 74, 195) → chip centre at y=182+13=195
+//   BEN dot ≈ ( 46, 219) → chip centre at y=206+13=219
+const CHIP_X = 175;
+const CHIP_W = 84;
+const CHIP_H = 32;
+const CHIP_STEP = 40; // chip height + 8px gap
+
+const LABEL_Y: Record<string, number> = {
+  OTA2201:  50,
+  WKM2201:  50 + CHIP_STEP,
+  HAY2201:  50 + CHIP_STEP * 2,
+  ISL2201:  50 + CHIP_STEP * 3,
+  BEN2201:  50 + CHIP_STEP * 4,
+};
 
 function ErrorState({ message }: { message: string }) {
   return (
@@ -64,15 +69,14 @@ export default function RTDPriceMap() {
     schedule: "RTD",
     marketType: "E",
     nodes: MAP_NODES.join(","),
-    back: 1,
+    back: 10,
   });
 
-  if (isLoading) return <WidgetSkeleton height={400} />;
+  if (isLoading) return <WidgetSkeleton height={310} />;
   if (error) return <ErrorState message={(error as Error).message} />;
   if (!data) return null;
 
-  // Get the latest price for each node
-  const nodePrices: Record<string, { price: number | null; tp: number | null }> = {};
+  const nodePrices: Record<string, { price: number | null }> = {};
   let latestTP: number | null = null;
   let latestTime = "";
 
@@ -91,23 +95,25 @@ export default function RTDPriceMap() {
         hour12: false,
       });
       const parts = fmt.formatToParts(new Date(latest.ts));
-      const hour = parseInt(parts.find((p) => p.type === "hour")?.value ?? "0", 10);
+      const hour   = parseInt(parts.find((p) => p.type === "hour")?.value   ?? "0", 10);
       const minute = parseInt(parts.find((p) => p.type === "minute")?.value ?? "0", 10);
       const tp = Math.floor((hour * 60 + minute) / 30) + 1;
       if (latestTP == null) {
         latestTP = tp;
         latestTime = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
       }
-      nodePrices[nodeId] = { price: latest.price, tp };
+      nodePrices[nodeId] = { price: latest.price };
     } else {
-      nodePrices[nodeId] = { price: null, tp: null };
+      nodePrices[nodeId] = { price: null };
     }
   }
 
+  const mapPath = pathGenerator(nzGeoJson as any);
+
   return (
-    <div className="w-full h-full flex flex-col">
-      {/* TP label */}
-      <div className="flex items-center justify-between px-4 py-2 shrink-0">
+    <div className="w-full h-full flex flex-col max-h-[380px]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-1 shrink-0">
         <span className="text-[10px] text-[#505050]">RTD node prices · $/MWh</span>
         {latestTP != null && (
           <span className="text-[10px] font-mono text-[#00BCD4]">
@@ -116,94 +122,74 @@ export default function RTDPriceMap() {
         )}
       </div>
 
-      {/* SVG map — scales to fill remaining space */}
+      {/* SVG: map left, label column right */}
       <div className="flex-1 min-h-0 px-2 pb-2">
         <svg
-          viewBox="0 0 420 500"
-          className="w-full h-full"
-          style={{ maxHeight: "420px" }}
+          viewBox={`0 0 ${W} ${H}`}
+          className="w-full h-full drop-shadow-md"
           aria-label="New Zealand RTD price map"
         >
-          {/* Background */}
-          <rect width="420" height="500" fill="#1A1A1A" />
+          <rect width={W} height={H} fill="#161616" rx="8" />
 
-          {/* NZ land */}
-          <path d={NI_PATH} fill="#2A2A2A" stroke="#3A3A3A" strokeWidth="0.5" />
-          <path d={SI_PATH} fill="#2A2A2A" stroke="#3A3A3A" strokeWidth="0.5" />
+          {mapPath && (
+            <path d={mapPath} fill="#252525" stroke="#333333" strokeWidth="0.8" />
+          )}
 
-          {/* Divider line between map and label area */}
-          <line
-            x1="242"
-            y1="80"
-            x2="242"
-            y2="460"
-            stroke="#2A2A2A"
-            strokeWidth="0.5"
-            strokeDasharray="3 4"
-          />
-
-          {/* Node dots + labels */}
           {MAP_NODES.map((nodeId) => {
-            const pos = NODE_POSITIONS[nodeId];
-            const labelY = LABEL_POSITIONS[nodeId];
-            const priceInfo = nodePrices[nodeId];
-            const price = priceInfo?.price;
-            const labelText =
-              price != null
-                ? `${nodeId} · $${price.toFixed(2)}`
-                : `${nodeId} · —`;
+            const projected = projection(NODE_COORDINATES[nodeId]);
+            if (!projected) return null;
+            const [dotX, dotY] = projected;
+            const color = NODE_COLORS[nodeId];
+            const chipY = LABEL_Y[nodeId];
+            const price = nodePrices[nodeId]?.price;
 
-            const dotX = pos[0];
-            const dotY = pos[1];
-            const lineEndX = LABEL_X - 2;
-            const chipX = LABEL_X;
-            const chipW = 128;
-            const chipH = 14;
-            const chipY = labelY - chipH / 2;
+            // Leader line runs from dot to the chip's left edge, horizontally centred on the chip
+            const lineEndY = chipY + CHIP_H / 2;
 
             return (
               <g key={nodeId}>
-                {/* Connecting line: dot → label chip */}
+                {/* Leader line */}
                 <line
-                  x1={dotX}
-                  y1={dotY}
-                  x2={lineEndX}
-                  y2={labelY}
-                  stroke="#E31937"
-                  strokeWidth="0.75"
-                  strokeOpacity="0.4"
+                  x1={dotX}  y1={dotY}
+                  x2={CHIP_X} y2={lineEndY}
+                  stroke={color}
+                  strokeWidth="0.8"
+                  strokeOpacity="0.45"
+                  strokeDasharray="3 2"
                 />
 
                 {/* Node dot */}
-                <circle
-                  cx={dotX}
-                  cy={dotY}
-                  r="4"
-                  fill="#E31937"
-                  fillOpacity="0.9"
-                />
+                <circle cx={dotX} cy={dotY} r="4" fill={color} fillOpacity="0.95" />
 
-                {/* Label chip background */}
+                {/* Chip background */}
                 <rect
-                  x={chipX}
-                  y={chipY}
-                  width={chipW}
-                  height={chipH}
+                  x={CHIP_X} y={chipY}
+                  width={CHIP_W} height={CHIP_H}
                   fill="#111111"
-                  stroke="#E31937"
-                  strokeWidth="0.75"
-                  rx="2"
+                  stroke={color}
+                  strokeWidth="0.8"
+                  rx="3"
                 />
 
-                {/* Label text */}
+                {/* Node name */}
                 <text
-                  x={chipX + 4}
-                  y={labelY + 4}
-                  fill="white"
-                  fontSize="8.5"
-                  fontFamily="'Roboto Mono', 'Courier New', monospace"
+                  x={CHIP_X + 5} y={chipY + 13}
+                  fill="#888"
+                  fontSize="9"
+                  fontFamily="'Roboto Mono','Courier New',monospace"
                 >
-                  {labelText}
+                  {nodeId}
+                </text>
+
+                {/* Price */}
+                <text
+                  x={CHIP_X + 5} y={chipY + 27}
+                  fill="white"
+                  fontSize="12"
+                  fontWeight="700"
+                  fontFamily="'Roboto Mono','Courier New',monospace"
+                >
+                  {price != null ? `$${price.toFixed(2)}` : "—"}
                 </text>
               </g>
             );
