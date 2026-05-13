@@ -17,7 +17,9 @@
     "performance_ratio": 0.78,
     "orientation": "North",
     "tilt_degrees": 20,
-    "install_date": "2023-01-01"
+    "install_date": "2023-01-01",
+    "daily_consumption_kwh_estimate": 1000,
+    "consumption_profile": "nz_secondary_school"
   },
   "contract": {
     "type": "PPA",

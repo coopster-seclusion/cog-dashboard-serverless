@@ -6,6 +6,8 @@ import AnnualProgress from "@/components/widgets/AnnualProgress";
 import CarbonOffset from "@/components/widgets/CarbonOffset";
 import GenerationChart from "@/components/widgets/GenerationChart";
 import SolarIrradianceChart from "@/components/widgets/SolarIrradianceChart";
+import SchoolConsumption from "@/components/widgets/SchoolConsumption";
+import GridExport from "@/components/widgets/GridExport";
 import SystemStats from "@/components/widgets/SystemStats";
 import PPADetails from "@/components/widgets/PPADetails";
 import WeatherForecast from "@/components/widgets/WeatherForecast";
@@ -51,6 +53,15 @@ export default function COGProperties() {
           colSpan={5}
         >
           <SolarIrradianceChart />
+        </WidgetCard>
+
+        {/* ── ROW 2.5: School Consumption + Grid Export ── */}
+        <WidgetCard title="School Consumption" colSpan={6}>
+          <SchoolConsumption />
+        </WidgetCard>
+
+        <WidgetCard title="Grid Export" colSpan={6}>
+          <GridExport />
         </WidgetCard>
 
         {/* ── ROW 3: System Details + PPA + 7-Day Forecast ── */}

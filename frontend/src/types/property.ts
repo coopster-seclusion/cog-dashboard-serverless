@@ -9,6 +9,8 @@ export interface PropertySystem {
   orientation: string;
   tilt_degrees: number;
   install_date: string;
+  daily_consumption_kwh_estimate?: number;
+  consumption_profile?: string;
 }
 
 export interface PropertyContract {
