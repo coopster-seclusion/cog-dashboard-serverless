@@ -25,14 +25,22 @@ function formatTime(ts: string | null): string {
 }
 
 function buildSeries(data: PricesResponse): NivoSeries[] {
-  return Object.entries(data.nodes).map(([nodeId, nodeData], i) => ({
-    id: nodeId,
-    color: CHART_COLORS[i] ?? "#505050",
-    data: nodeData.timestamps.map((ts, j) => ({
-      x: formatTime(ts),
-      y: nodeData.prices[j],
-    })),
-  }));
+  return Object.entries(data.nodes).map(([nodeId, nodeData], i) => {
+    // Sort ascending so oldest data is on the left
+    const pairs = nodeData.timestamps
+      .map((ts, j) => ({ ts, price: nodeData.prices[j] }))
+      .sort((a, b) => {
+        if (!a.ts || !b.ts) return 0;
+        return new Date(a.ts).getTime() - new Date(b.ts).getTime();
+      });
+    return {
+      id: nodeId,
+      color: CHART_COLORS[i] ?? "#505050",
+      // Use full ISO timestamp as x — guarantees uniqueness across day boundaries.
+      // HH:MM display is handled via xFormat / axisBottom.format below.
+      data: pairs.map(({ ts, price }, j) => ({ x: ts ?? String(j), y: price })),
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -103,9 +111,10 @@ export default function PriceChart() {
   // At most ~6 x-axis tick labels regardless of data density
   const totalPoints = series[0].data.length;
   const tickEvery = Math.max(1, Math.floor(totalPoints / 6));
+  // tickValues are ISO strings (the actual x keys); axis format converts to HH:MM
   const tickValues = series[0].data
     .filter((_, i) => i % tickEvery === 0)
-    .map((p) => p.x);
+    .map((p) => p.x as string);
 
   return (
     <div>
@@ -116,19 +125,21 @@ export default function PriceChart() {
           colors={series.map((s) => s.color)}
           margin={{ top: 8, right: 16, bottom: 28, left: 58 }}
           xScale={{ type: "point" }}
+          xFormat={(v) => formatTime(v as string)}
           yScale={{ type: "linear", min: "auto", max: "auto", stacked: false }}
           yFormat={(v) => `$${Number(v).toFixed(2)}`}
           axisBottom={{
             tickValues,
             tickSize: 0,
             tickPadding: 8,
+            format: (v) => formatTime(v as string),
           }}
           axisLeft={{
             tickSize: 0,
             tickPadding: 8,
             format: (v) => `$${v}`,
           }}
-          enableGridX={false}
+          enableGridX
           enableGridY
           gridYValues={5}
           lineWidth={1.5}

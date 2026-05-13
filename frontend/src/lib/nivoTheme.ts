@@ -34,5 +34,14 @@ export const nivoTheme: Theme = {
   },
 };
 
-// Series colors in priority order: red accent, white, mid-grey, soft-red, dark-grey
-export const CHART_COLORS = ["#E31937", "#FFFFFF", "#A0A0A0", "#FF6B6B", "#505050"] as const;
+// 8 visually distinct colors for dark backgrounds — Tailwind 400 palette
+export const CHART_COLORS = [
+  "#60A5FA", // blue-400
+  "#34D399", // emerald-400
+  "#FBBF24", // amber-400
+  "#F472B6", // pink-400
+  "#818CF8", // violet-400
+  "#38BDF8", // sky-400
+  "#FB923C", // orange-400
+  "#A3E635", // lime-400
+] as const;
