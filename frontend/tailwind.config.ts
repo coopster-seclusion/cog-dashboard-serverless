@@ -1,7 +1,6 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: ["class"],
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
@@ -37,13 +36,11 @@ const config: Config = {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        DEFAULT: "var(--radius)",
       },
       fontFamily: {
-        mono: ["IBM Plex Mono", "monospace"],
-        sans: ["DM Sans", "sans-serif"],
+        sans: ["Inter", "sans-serif"],
+        mono: ["Roboto Mono", "monospace"],
       },
     },
   },

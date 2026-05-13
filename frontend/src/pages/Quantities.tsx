@@ -1,10 +1,33 @@
+import DashboardGrid from "@/components/layout/DashboardGrid";
+import WidgetCard from "@/components/layout/WidgetCard";
+
+function Placeholder({ label, height = 200 }: { label: string; height?: number }) {
+  return (
+    <div
+      className="flex items-center justify-center font-mono text-[11px] text-[#2A2A2A]"
+      style={{ height }}
+    >
+      {label}
+    </div>
+  );
+}
+
 export default function Quantities() {
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-semibold">Quantities</h1>
-      <p className="text-sm text-muted-foreground mt-1">
-        IslandBalance, IntermittentShare — Phase 2 widgets go here.
-      </p>
-    </div>
+    <DashboardGrid>
+      {/* Row 1 */}
+      <WidgetCard title="Island Balance" subtitle="Generation vs Load · MW" colSpan={2}>
+        <Placeholder label="IslandBalance.tsx" />
+      </WidgetCard>
+
+      <WidgetCard title="Intermittent Share" subtitle="Wind + solar % of generation">
+        <Placeholder label="IntermittentShare.tsx" />
+      </WidgetCard>
+
+      {/* Row 2 */}
+      <WidgetCard title="Forward Price Curve" subtitle="PRSL · next 7 TPs" colSpan={2}>
+        <Placeholder label="ForwardCurve.tsx" />
+      </WidgetCard>
+    </DashboardGrid>
   );
 }
