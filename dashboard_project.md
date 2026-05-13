@@ -45,16 +45,30 @@ cog-dashboard-ui/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── ui/           # shadcn/ui primitives (auto-generated, don't edit)
-│   │   │   ├── widgets/      # Dashboard widgets — one file per widget
-│   │   │   └── layout/       # Sidebar, header, tab nav
+│   │   │   ├── layout/
+│   │   │   │   ├── TopBar.tsx        # 48px top bar — hamburger, time range, live dot
+│   │   │   │   ├── Sidebar.tsx       # 240px slide-in filter panel
+│   │   │   │   ├── DashboardGrid.tsx # Responsive CSS grid (1→2→3 col)
+│   │   │   │   └── WidgetCard.tsx    # Base card wrapper + WidgetSkeleton export
+│   │   │   └── widgets/
+│   │   │       ├── PriceChart.tsx    # ✓ Multi-node spot price line chart
+│   │   │       ├── PriceKPIs.tsx     # ✓ Latest $/MWh per node + delta
+│   │   │       ├── PriceSpread.tsx   # ✓ HAY−BEN spread line + area fill
+│   │   │       ├── ScheduleOverlay.tsx # ✓ RTD vs PRSL overlay
+│   │   │       ├── IslandBalance.tsx # stub — Phase 2
+│   │   │       ├── IntermittentShare.tsx # stub — Phase 2
+│   │   │       └── ForwardCurve.tsx  # stub — Phase 2
+│   │   ├── context/
+│   │   │   └── DashboardContext.tsx  # Global filter state (schedule, nodes, timeRange…)
 │   │   ├── hooks/
-│   │   │   └── useWITS.ts    # TanStack Query hooks — one per API endpoint
+│   │   │   └── useWITS.ts    # TanStack Query hooks — all read from DashboardContext
 │   │   ├── lib/
-│   │   │   └── api.ts        # Fetch wrappers pointing at FastAPI
+│   │   │   ├── api.ts        # Fetch wrappers pointing at FastAPI
+│   │   │   ├── nivoTheme.ts  # Shared Nivo theme + CHART_COLORS palette
+│   │   │   └── utils.ts      # cn() helper
 │   │   ├── pages/
-│   │   │   ├── Prices.tsx
-│   │   │   └── Quantities.tsx
+│   │   │   ├── Prices.tsx    # Phase 1 widget grid (all 4 widgets live)
+│   │   │   └── Quantities.tsx # Phase 2 widget grid (stubs)
 │   │   ├── App.tsx
 │   │   └── main.tsx
 │   ├── index.html
@@ -97,13 +111,14 @@ pydantic>=2.0.0
 | **Vite** | Fast dev server, instant HMR, handles TypeScript out of the box |
 | **React 18** | Component model, concurrent rendering |
 | **TypeScript** | Catches API shape mismatches before they become runtime bugs |
-| **TanStack Query v5** | Server state management — handles caching, polling, loading/error states cleanly |
-| **shadcn/ui** | Component primitives (not a library you install, you own the code). Dark mode out of the box, unstyled enough to look original |
-| **Tailwind CSS v3** | Utility classes, pairs with shadcn |
-| **Recharts** | Chart library that works naturally with React and Tailwind. Composable, not config-heavy |
+| **TanStack Query v5** | Server state management — caching, polling, loading/error states |
+| **Nivo** | Chart library (`@nivo/core`, `@nivo/line`, `@nivo/bar`, `@nivo/bump`, `@nivo/pie`, `@nivo/scatterplot`) — composable, SVG-based, theming via a single config object |
+| **shadcn/ui** | Radix-based component primitives (Button, Select, etc.) — own the code |
+| **Tailwind CSS v3** | Utility classes |
 | **React Router v6** | Client-side routing between pages |
+| **lucide-react** | Icon set used in TopBar and Sidebar |
 
-Vite is chosen over Create React App (deprecated) and Next.js (overkill for a local dashboard with no SSR requirements).
+Recharts was removed during the frontend rebuild. All charts use Nivo.
 
 ---
 
@@ -148,9 +163,7 @@ You need both terminals running at the same time.
 
 ---
 
-## FastAPI Routes to Build
-
-These are the endpoints React will call. They map directly to WITS API calls in `wits_client.py`.
+## FastAPI Routes
 
 ```
 GET /api/prices
@@ -171,76 +184,211 @@ GET /api/quantities/reserves
 ```
 
 Each route validates inputs with Pydantic and returns clean, flat JSON.
-The React layer should never have to parse nested WITS API structures.
+The React layer never parses nested WITS API structures.
+
+---
+
+## Global State — DashboardContext
+
+All filter controls live in `src/context/DashboardContext.tsx`. All TanStack Query hooks
+read from this context. When context state changes, queries automatically refetch because
+the query key includes the state values.
+
+```typescript
+interface DashboardState {
+  schedule: string;           // default "RTD"
+  marketType: "E" | "R";     // default "E"
+  nodes: string[];            // default ["OTA2201", "HAY2201", "BEN2201"]
+  island: "NI" | "SI" | "BOTH"; // default "BOTH"
+  timeRange: "LIVE" | "1H" | "6H" | "24H" | "7D" | "CUSTOM";
+  from?: string;              // ISO string, only when CUSTOM
+  to?: string;
+  autoRefresh: boolean;       // default true
+  refreshInterval: 30 | 60 | 300; // seconds, default 30
+}
+```
+
+`timeRange` maps to API params as follows:
+
+| timeRange | back param |
+|---|---|
+| LIVE | 7 TPs (~3.5 hours) |
+| 1H | 2 TPs |
+| 6H | 12 TPs |
+| 24H | 48 TPs |
+| 7D | 48 TPs (WITS cap) |
+| CUSTOM | `from` / `to` passed directly |
+
+### Hook signatures
+
+```typescript
+usePrices(overrides?: Partial<PricesParams>, enabled?: boolean)
+usePriceSpread(nodeA: string, nodeB: string, overrides?, enabled?)
+useEnergyQuantities(overrides?: Partial<EnergyParams>, enabled?)
+useReserveQuantities(runClass: string, overrides?, enabled?)
+useSchedules()   // static, no context
+useNodes()       // static, no context
+```
+
+`overrides` lets a widget pin specific params regardless of context. ScheduleOverlay
+uses this to always show RTD + PRSL even when the global schedule selector is changed.
+
+---
+
+## Layout
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  TopBar (48px) — hamburger │ COG DASHBOARD │ time range │
+├─────────────────────────────────────────────────────────┤
+│  Page tabs — Prices │ Quantities                        │
+├──────┬──────────────────────────────────────────────────┤
+│Slide │  DashboardGrid (1→2→3 col responsive)           │
+│-in   │  ┌──────────────┐ ┌──────────────┐ ┌──────┐    │
+│Side  │  │  WidgetCard  │ │  WidgetCard  │ │Widget│    │
+│bar   │  └──────────────┘ └──────────────┘ └──────┘    │
+│      │  ...                                             │
+└──────┴──────────────────────────────────────────────────┘
+```
+
+**TopBar** — persistent, 48px. Left: hamburger (toggles sidebar) + wordmark with Tesla-red
+left-border accent. Center: `LIVE / 1H / 6H / 24H / 7D / CUSTOM` time range strip (active =
+red fill, writes to DashboardContext). Right: pulsing live dot + `LIVE` label when in live mode
++ manual refresh button.
+
+**Sidebar** — 240px slide-in panel. Manages local draft state; changes only hit DashboardContext
+when `APPLY` is pressed. Contains: node multiselect, island toggle, schedule dropdown, market
+type toggle, auto-refresh switch + interval picker.
+
+**WidgetCard** — base wrapper for all widgets. Props: `title`, `subtitle?`, `live?`, `colSpan?`
+(1/2/3), `children`. Header row is padded; chart content area has no padding so charts bleed to
+card edges. Exports `WidgetSkeleton` for loading states.
+
+**DashboardGrid** — `grid-cols-1 lg:grid-cols-2 xl:grid-cols-3` with `gap-4 p-6`.
+
+---
+
+## Design
+
+Tesla Energy / Powerwall dashboard aesthetic. Dense, data-forward, control-room feel.
+
+### Palette
+
+| Token | Hex | Usage |
+|---|---|---|
+| Background | `#0A0A0A` | Page background |
+| Surface | `#111111` | Cards, TopBar, Sidebar |
+| Elevated | `#1A1A1A` | Inputs, secondary surfaces |
+| Border | `#2A2A2A` | All borders — barely visible |
+| Accent | `#E31937` | Active states, live indicators, crosshair |
+| Text primary | `#FFFFFF` | KPI values, active labels |
+| Text secondary | `#A0A0A0` | Card titles, axis labels |
+| Text muted | `#505050` | Disabled, tick labels, subtitles |
+
+No purple. No gradients. No rounded pill buttons. No glassmorphism.
+
+### Typography
+
+- **Inter** — UI labels, body text
+- **Roboto Mono** — all price/number display values (`tabular-nums` where applicable)
+- Both loaded from Google Fonts in `index.html`
+
+### Chart colors (Nivo series, in order)
+
+```typescript
+// src/lib/nivoTheme.ts
+export const CHART_COLORS = [
+  "#60A5FA", // blue-400
+  "#34D399", // emerald-400
+  "#FBBF24", // amber-400
+  "#F472B6", // pink-400
+  "#818CF8", // violet-400
+  "#38BDF8", // sky-400
+  "#FB923C", // orange-400
+  "#A3E635", // lime-400
+];
+```
+
+Tesla red (`#E31937`) is reserved for UI chrome only — it never appears as a data series color.
+Color assignment is index-based: the same node always gets the same color within a session.
+
+### Nivo theme
+
+Defined once in `src/lib/nivoTheme.ts` and passed as `theme={nivoTheme}` to every chart.
+Key values: `background: "transparent"`, grid lines `#1E1E1E`, crosshair `#E31937`.
 
 ---
 
 ## Widget Roadmap
 
-Build in this order. Each widget is one file in `src/components/widgets/`.
+### Phase 1 — Core (Prices page) ✓ Complete
 
-### Phase 1 — Core (build first)
+| Widget | File | Status | Data |
+|---|---|---|---|
+| Node price chart | `PriceChart.tsx` | ✓ Built | `GET /api/prices` — multi-node line chart |
+| Latest price KPIs | `PriceKPIs.tsx` | ✓ Built | Reuses `usePrices()` cache — latest value + TP delta |
+| NI/SI price spread | `PriceSpread.tsx` | ✓ Built | `GET /api/prices/spread` — HAY−BEN line + area fill |
+| RTD vs pre-dispatch | `ScheduleOverlay.tsx` | ✓ Built | Two `usePrices()` calls pinned to RTD + PRSL |
 
-| Widget | File | Data |
-|---|---|---|
-| Node price chart | `PriceChart.tsx` | `GET /api/prices` — multi-node line chart |
-| NI/SI price spread | `PriceSpread.tsx` | `GET /api/prices/spread` — HAY vs BEN area diff |
-| Latest price KPIs | `PriceKPIs.tsx` | Same data as price chart, just latest value per node |
-| RTD vs pre-dispatch overlay | `ScheduleOverlay.tsx` | Two `GET /api/prices` calls, RTD + PRSL on same chart |
+### Phase 2 — Quantities (Quantities page)
 
-### Phase 2 — Quantities
-
-| Widget | File | Data |
-|---|---|---|
-| Island generation vs load | `IslandBalance.tsx` | `GET /api/quantities/energy` — grouped bar NI vs SI |
-| Intermittent generation % | `IntermittentShare.tsx` | Same endpoint, `intermittentGeneration / generation` |
-| Forward price curve | `ForwardCurve.tsx` | `GET /api/prices` with `forward=7`, PRSL schedule |
+| Widget | File | Status | Data |
+|---|---|---|---|
+| Island generation vs load | `IslandBalance.tsx` | stub | `GET /api/quantities/energy` — grouped bar NI vs SI |
+| Intermittent generation % | `IntermittentShare.tsx` | stub | Same endpoint — `intermittentGeneration / generation` |
+| Forward price curve | `ForwardCurve.tsx` | stub | `GET /api/prices` with `forward=7`, PRSL schedule |
 
 ### Phase 3 — Reserves
 
-| Widget | File | Data |
-|---|---|---|
-| Reserve MW vs risk MW | `ReserveGauge.tsx` | `GET /api/quantities/reserves` — headroom indicator |
-| Reserve price ticker | `ReservePrices.tsx` | `GET /api/prices` with `marketType=R` |
+| Widget | File | Status | Data |
+|---|---|---|---|
+| Reserve MW vs risk MW | `ReserveGauge.tsx` | not started | `GET /api/quantities/reserves` |
+| Reserve price ticker | `ReservePrices.tsx` | not started | `GET /api/prices` with `marketType=R` |
 
 ### Phase 4 — Polish
 
-- Auto-refresh toggle with configurable interval (30s / 60s / 5min)
-- Last-updated timestamp on each widget
+- Auto-refresh already wired to context (`autoRefresh` + `refreshInterval`)
+- Last-updated timestamp on each widget card
 - Price spike highlighting (configurable threshold)
 - Node comparison table with sortable columns
 - Mobile-responsive layout
 
 ---
 
-## Design Direction
+## Implementation Notes
 
-Dark theme. The NZ electricity market runs 24/7 and the dashboard should feel like something
-a grid operator would actually use — dense, precise, data-forward. Not a marketing page.
+### X-axis uniqueness (important)
+Nivo's `xScale: { type: "point" }` requires unique x values. Using formatted `HH:MM` strings
+causes duplicates on any range ≥ 24H (the same time label appears twice). Fix: store the full
+ISO timestamp as the Nivo `x` key, and use `xFormat` + `axisBottom.format` to display `HH:MM`
+only on screen. This is implemented in all four Phase 1 widgets.
 
-Reference aesthetic: terminal-inspired but cleaned up. Monospace accents on numbers.
-Tight grid layout. Colour used sparingly and semantically — green for generation surplus,
-amber for price warnings, red for spikes. No decorative gradients.
+### TanStack Query deduplication
+`PriceKPIs` calls `usePrices()` with the same default params as `PriceChart`. TanStack Query
+returns the cached response — no second API call is made. Both components stay in sync on
+every refetch.
 
-shadcn/ui's `dark` class on the root handles the baseline. Customise from there.
-Avoid the default shadcn grey palette — swap to a warmer neutral or a slate-with-blue-tint.
+### ScheduleOverlay always pins RTD + PRSL
+Even when the global schedule selector in the Sidebar is changed, ScheduleOverlay passes
+`{ schedule: "RTD" }` and `{ schedule: "PRSL" }` as overrides to `usePrices()`. The override
+merges over the context value, so the widget always compares the same two schedules.
 
-Font pairing: **IBM Plex Mono** for all price/number display, **Geist** or
-**DM Sans** for labels and UI text. Both free, both sharp.
+### PRSL opacity in ScheduleOverlay
+PRSL series colors use 8-digit hex (`#RRGGBBAA`). The base color gets `"99"` appended
+(≈ 60% opacity in hex) to visually distinguish pre-dispatch from actual RTD prices without
+requiring per-series dash styling (which Nivo Line doesn't support natively).
 
 ---
 
-## Development Sequence
+## Known Constraints (from WITS API)
 
-1. Get FastAPI running and returning data from `wits_client.py` — verify at `/docs`
-2. Scaffold React with Vite + TypeScript + Tailwind + shadcn
-3. Wire up TanStack Query with a basic `useWITS` hook hitting `GET /api/prices`
-4. Build `PriceChart.tsx` — this is the skeleton everything else hangs off
-5. Add `PriceKPIs.tsx` using the same query data (no extra fetch)
-6. Build `PriceSpread.tsx` — the most informative single widget
-7. Add auto-refresh to TanStack Query (`refetchInterval`)
-8. Build Phase 2 quantities widgets
-9. Layout polish, responsive breakpoints, design pass
+- Rolling window for prices: **−7 to +7 TP** (~3.5 hours each direction)
+- Quantities window: **−24 to +24 TP** (12 hours each direction)
+- `back`/`forward` and `from`/`to` are mutually exclusive — enforced in FastAPI validation
+- `forward` only returns data for schedules that publish pre-dispatch: PRSL, PRSS, NRSL, NRSS, WDS
+- Max 10,000 records per call — pagination needed for long date-range queries (Phase 4)
+- Quantities API requires a separate WITS subscription from Market Prices
+- `back`/`forward` validated with `ge=1, le=48` at the FastAPI layer
 
 ---
 
@@ -255,14 +403,3 @@ frontend/dist/
 __pycache__/
 .DS_Store
 ```
-
----
-
-## Known Constraints Carried Over from Streamlit Project
-
-- WITS API rolling window for prices: **-7 to +7 TP** (~3.5 hours each direction)
-- Quantities window is longer: **-24 to +24 TP** (12 hours each direction)
-- `back`/`forward` and `from`/`to` are mutually exclusive — enforce this in FastAPI validation
-- `forward` only returns data for schedules that publish pre-dispatch: PRSL, PRSS, NRSL, NRSS, WDS
-- Max 10,000 records per call — pagination needed for long date-range queries (Phase 4)
-- Quantities API requires a separate WITS subscription from Market Prices
