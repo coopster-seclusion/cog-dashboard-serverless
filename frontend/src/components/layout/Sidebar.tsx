@@ -1,15 +1,9 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { X, Lock, RefreshCw } from "lucide-react";
+import { X, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useDashboard, type MarketType } from "@/context/WITSContext";
+import { useDashboard } from "@/context/WITSContext";
 import { useProperties } from "@/context/PropertiesContext";
-import { TIME_RANGE_CONFIG } from "@/lib/timeRangeConfig";
-import {
-  SCHEDULE_CONFIG,
-  SCHEDULES_BY_TIME_RANGE,
-  sanitiseOnScheduleChange,
-} from "@/lib/scheduleConfig";
 
 // Nodes grouped by island
 const NI_NODES = ["OTA2201", "HAY2201", "WKM2201", "STK0111", "MRT2201", "TAU2201"];
@@ -28,73 +22,42 @@ interface SidebarProps {
 
 function WITSSidebar({ onClose }: { onClose: () => void }) {
   const { state, setState, setLastRefreshed } = useDashboard();
-  const cfg = TIME_RANGE_CONFIG[state.timeRange];
   const isLive = state.timeRange === "LIVE";
 
   // Local draft state
   const [nodes, setNodes] = useState<string[]>(state.nodes);
-  const [schedule, setSchedule] = useState(state.schedule);
-  const [marketType, setMarketType] = useState<MarketType>(state.marketType);
   const [autoRefresh, setAutoRefresh] = useState(state.autoRefresh);
   const [refreshInterval, setRefreshInterval] = useState(state.refreshInterval);
 
   // Reset draft when applied state changes from outside
   useEffect(() => {
     setNodes(state.nodes);
-    setSchedule(state.schedule);
-    setMarketType(state.marketType);
     setAutoRefresh(state.autoRefresh);
     setRefreshInterval(state.refreshInterval);
   }, [state]);
 
   // Detect unapplied changes for the yellow dot
   const hasStagedNodes = JSON.stringify(nodes) !== JSON.stringify(state.nodes);
-  const hasStagedSchedule = schedule !== state.schedule;
-  const hasStagedMarket = marketType !== state.marketType;
   const hasStagedRefresh =
     autoRefresh !== state.autoRefresh || refreshInterval !== state.refreshInterval;
-  const hasStagedChanges =
-    hasStagedNodes || hasStagedSchedule || hasStagedMarket || hasStagedRefresh;
+  const hasStagedChanges = hasStagedNodes || hasStagedRefresh;
 
   function toggleNode(node: string) {
     setNodes((prev) => {
       if (prev.includes(node)) {
-        // Minimum 1 node
         if (prev.length === 1) return prev;
         return prev.filter((n) => n !== node);
       }
-      // Maximum 6 nodes
       if (prev.length >= MAX_NODES) return prev;
       return [...prev, node];
     });
   }
 
-  function handleScheduleChange(s: string) {
-    setSchedule(s);
-    // Auto-fix marketType if needed
-    setMarketType((mt) => sanitiseOnScheduleChange(s, mt));
-  }
-
   function handleApply() {
-    setState({ nodes, schedule, marketType, autoRefresh, refreshInterval });
+    setState({ nodes, autoRefresh, refreshInterval });
     setLastRefreshed(new Date());
     onClose();
   }
-
-  // Market type guard: RESERVES disabled when...
-  const reservesDisabled =
-    state.timeRange === "LIVE" ||
-    state.timeRange === "1H" ||
-    state.timeRange === "7D" ||
-    state.timeRange === "CUSTOM" ||
-    !SCHEDULE_CONFIG[schedule as keyof typeof SCHEDULE_CONFIG]?.supportsReserves;
-
-  const scheduleOptions = cfg.scheduleOverrideable
-    ? (SCHEDULES_BY_TIME_RANGE[state.timeRange] ?? [])
-    : [];
-
-  const scheduleDescription =
-    SCHEDULE_CONFIG[schedule as keyof typeof SCHEDULE_CONFIG]?.description ?? "";
 
   return (
     <>
@@ -160,81 +123,6 @@ function WITSSidebar({ onClose }: { onClose: () => void }) {
         <p className="text-[9px] text-[#505050] mt-2">
           {nodes.length}/{MAX_NODES} selected · Overlay uses {nodes[0]}
         </p>
-      </section>
-
-      {/* SCHEDULE */}
-      <section>
-        <div className="flex items-center gap-1.5 mb-2">
-          <p className="text-[10px] tracking-widest uppercase text-[#505050]">
-            Schedule
-          </p>
-          {!cfg.scheduleOverrideable && (
-            <Lock size={10} className="text-[#505050] opacity-50" />
-          )}
-        </div>
-        {cfg.scheduleOverrideable ? (
-          <>
-            <select
-              value={schedule}
-              onChange={(e) => handleScheduleChange(e.target.value)}
-              className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white text-[11px] rounded px-2 py-1.5 focus:outline-none focus:border-[#E31937] transition-colors"
-            >
-              {scheduleOptions.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-            {scheduleDescription && (
-              <p className="text-[9px] text-[#505050] mt-1">{scheduleDescription}</p>
-            )}
-          </>
-        ) : (
-          <div
-            className="flex items-center gap-2 px-2 py-1.5 bg-[#0A0A0A] border border-[#1A1A1A] rounded"
-            title={cfg.note ?? "Schedule is fixed for this time range"}
-          >
-            <span className="text-[11px] font-mono text-[#505050]">{schedule}</span>
-            {cfg.note && (
-              <span className="text-[9px] text-[#303030] italic truncate">{cfg.note}</span>
-            )}
-          </div>
-        )}
-      </section>
-
-      {/* MARKET TYPE */}
-      <section>
-        <p className="text-[10px] tracking-widest uppercase text-[#505050] mb-2">
-          Market
-        </p>
-        <div className="flex gap-1">
-          {(["E", "R"] as MarketType[]).map((m) => {
-            const isReserves = m === "R";
-            const disabled = isReserves && reservesDisabled;
-            return (
-              <button
-                key={m}
-                disabled={disabled}
-                onClick={() => !disabled && setMarketType(m)}
-                title={
-                  disabled
-                    ? "Reserves not available for this time range / schedule"
-                    : undefined
-                }
-                className={cn(
-                  "flex-1 py-1 text-[11px] font-medium tracking-wider rounded transition-colors",
-                  marketType === m && !disabled
-                    ? "bg-[#E31937] text-white"
-                    : disabled
-                      ? "bg-[#0A0A0A] text-[#303030] cursor-not-allowed"
-                      : "bg-[#1A1A1A] text-[#505050] hover:text-[#A0A0A0]",
-                )}
-              >
-                {m === "E" ? "ENERGY" : "RESERVES"}
-              </button>
-            );
-          })}
-        </div>
       </section>
 
       {/* AUTO-REFRESH */}

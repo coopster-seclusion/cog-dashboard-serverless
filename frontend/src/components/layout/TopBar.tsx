@@ -50,6 +50,18 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
     return () => clearInterval(id);
   }, [lastRefreshed]);
 
+  // Reset elapsed whenever any query auto-refreshes successfully
+  useEffect(() => {
+    return queryClient.getQueryCache().subscribe((event) => {
+      if (
+        event.type === "updated" &&
+        (event.action as { type: string } | undefined)?.type === "success"
+      ) {
+        setLastRefreshed(new Date());
+      }
+    });
+  }, [queryClient, setLastRefreshed]);
+
   const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries();
     setLastRefreshed(new Date());
