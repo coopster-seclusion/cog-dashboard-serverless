@@ -57,8 +57,8 @@ export default function WidgetCard({
           )}
           {live && (
             <span className="relative flex h-2 w-2 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E31937] opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#E31937]" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#22C55E]" />
             </span>
           )}
         </div>

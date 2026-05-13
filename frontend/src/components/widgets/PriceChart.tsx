@@ -1,8 +1,25 @@
+import { useState } from "react";
 import { ResponsiveLine } from "@nivo/line";
 import { usePrices } from "@/hooks/useWITS";
 import { nivoTheme, CHART_COLORS } from "@/lib/nivoTheme";
 import { WidgetSkeleton } from "@/components/layout/WidgetCard";
+import { cn } from "@/lib/utils";
 import type { PricesResponse } from "@/lib/api";
+
+// ---------------------------------------------------------------------------
+// Local time range
+// ---------------------------------------------------------------------------
+
+type LocalRange = "LIVE" | "1H" | "6H" | "24H";
+
+const LOCAL_RANGES: LocalRange[] = ["LIVE", "1H", "6H", "24H"];
+
+const BACK_MAP: Record<LocalRange, number> = {
+  LIVE: 2,
+  "1H": 2,
+  "6H": 12,
+  "24H": 48,
+};
 
 // ---------------------------------------------------------------------------
 // Data transform
@@ -26,7 +43,6 @@ function formatTime(ts: string | null): string {
 
 function buildSeries(data: PricesResponse): NivoSeries[] {
   return Object.entries(data.nodes).map(([nodeId, nodeData], i) => {
-    // Sort ascending so oldest data is on the left
     const pairs = nodeData.timestamps
       .map((ts, j) => ({ ts, price: nodeData.prices[j] }))
       .sort((a, b) => {
@@ -36,8 +52,6 @@ function buildSeries(data: PricesResponse): NivoSeries[] {
     return {
       id: nodeId,
       color: CHART_COLORS[i] ?? "#505050",
-      // Use full ISO timestamp as x — guarantees uniqueness across day boundaries.
-      // HH:MM display is handled via xFormat / axisBottom.format below.
       data: pairs.map(({ ts, price }, j) => ({ x: ts ?? String(j), y: price })),
     };
   });
@@ -97,9 +111,10 @@ function ErrorState({ message }: { message: string }) {
 // ---------------------------------------------------------------------------
 
 export default function PriceChart() {
-  const { data, isLoading, error } = usePrices();
+  const [range, setRange] = useState<LocalRange>("LIVE");
+  const { data, isLoading, error } = usePrices({ back: BACK_MAP[range] });
 
-  if (isLoading) return <WidgetSkeleton height={282} />;
+  if (isLoading) return <WidgetSkeleton height={306} />;
   if (error) return <ErrorState message={(error as Error).message} />;
   if (!data) return null;
 
@@ -108,16 +123,38 @@ export default function PriceChart() {
     return <ErrorState message="No price data available." />;
   }
 
-  // At most ~6 x-axis tick labels regardless of data density
   const totalPoints = series[0].data.length;
   const tickEvery = Math.max(1, Math.floor(totalPoints / 6));
-  // tickValues are ISO strings (the actual x keys); axis format converts to HH:MM
   const tickValues = series[0].data
     .filter((_, i) => i % tickEvery === 0)
     .map((p) => p.x as string);
 
   return (
     <div>
+      {/* Time range strip */}
+      <div className="flex items-center gap-0.5 px-4 pt-3 pb-1">
+        {LOCAL_RANGES.map((r) => (
+          <button
+            key={r}
+            onClick={() => setRange(r)}
+            className={cn(
+              "px-2.5 py-0.5 text-[10px] font-medium tracking-wider rounded transition-colors",
+              range === r
+                ? "bg-[#E31937] text-white"
+                : "text-[#505050] hover:text-[#A0A0A0]",
+            )}
+          >
+            {r}
+          </button>
+        ))}
+        {range === "LIVE" && (
+          <span className="relative flex h-2 w-2 ml-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#22C55E]" />
+          </span>
+        )}
+      </div>
+
       <div className="h-[240px]">
         <ResponsiveLine
           data={series}

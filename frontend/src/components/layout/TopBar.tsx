@@ -1,11 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { Menu, RefreshCw, Lock } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
 import { useDashboard } from "@/context/WITSContext";
-import { TIME_RANGE_CONFIG, type TimeRange } from "@/lib/timeRangeConfig";
-
-const TIME_RANGES: TimeRange[] = ["LIVE", "1H", "6H", "24H", "7D", "CUSTOM"];
+import { TIME_RANGE_CONFIG } from "@/lib/timeRangeConfig";
 
 // Returns current NZT trading period number and HH:MM
 function getNZTPInfo(): { tp: number; time: string } {
@@ -37,7 +34,7 @@ interface TopBarProps {
 }
 
 export default function TopBar({ onMenuToggle }: TopBarProps) {
-  const { state, setState, lastRefreshed, setLastRefreshed } = useDashboard();
+  const { state, lastRefreshed, setLastRefreshed } = useDashboard();
   const queryClient = useQueryClient();
   const isLive = state.timeRange === "LIVE";
   const cfg = TIME_RANGE_CONFIG[state.timeRange];
@@ -45,7 +42,6 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
   const [tpInfo, setTPInfo] = useState(getNZTPInfo);
   const [elapsed, setElapsed] = useState(0);
 
-  // Tick every second: update TP display and elapsed counter
   useEffect(() => {
     const id = setInterval(() => {
       setTPInfo(getNZTPInfo());
@@ -58,14 +54,6 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
     queryClient.invalidateQueries();
     setLastRefreshed(new Date());
   }, [queryClient, setLastRefreshed]);
-
-  const handleTimeRange = useCallback(
-    (range: TimeRange) => {
-      setState({ timeRange: range });
-      setLastRefreshed(new Date());
-    },
-    [setState, setLastRefreshed],
-  );
 
   return (
     <header className="flex flex-col shrink-0 bg-[#111111] border-b border-[#2A2A2A]">
@@ -87,28 +75,8 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
           </div>
         </div>
 
-        {/* Center — time range strip */}
-        <div className="flex-1 flex justify-center">
-          <div className="flex items-center gap-0.5">
-            {TIME_RANGES.map((range) => (
-              <button
-                key={range}
-                onClick={() => handleTimeRange(range)}
-                className={cn(
-                  "px-3 py-1 text-[11px] font-medium tracking-wider rounded transition-colors",
-                  state.timeRange === range
-                    ? "bg-[#E31937] text-white"
-                    : "text-[#505050] hover:text-[#A0A0A0]",
-                )}
-              >
-                {range}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Right — TP info + elapsed + live dot + refresh */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 ml-auto">
           <span className="text-[11px] font-mono text-[#505050] whitespace-nowrap">
             TP {tpInfo.tp} · {tpInfo.time}
           </span>
@@ -119,8 +87,8 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
           {isLive ? (
             <div className="flex items-center gap-1.5">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E31937] opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#E31937]" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#22C55E]" />
               </span>
               <span className="text-[11px] font-semibold tracking-widest text-[#E31937]">
                 LIVE
@@ -147,42 +115,6 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
           </button>
         </div>
       </div>
-
-      {/* CUSTOM date range row — only shown when CUSTOM is selected */}
-      {state.timeRange === "CUSTOM" && (
-        <div className="flex items-center gap-4 px-4 pb-2">
-          <span className="text-[10px] text-[#505050] uppercase tracking-widest">
-            Range
-          </span>
-          <div className="flex items-center gap-2">
-            <label className="text-[10px] text-[#505050]">From</label>
-            <input
-              type="date"
-              value={state.customFrom?.slice(0, 10) ?? ""}
-              max={new Date().toISOString().slice(0, 10)}
-              min={new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10)}
-              onChange={(e) => setState({ customFrom: e.target.value + "T00:00:00.000Z" })}
-              className="bg-[#1A1A1A] border border-[#2A2A2A] text-white text-[10px] rounded px-2 py-0.5 focus:outline-none focus:border-[#E31937]"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-[10px] text-[#505050]">To</label>
-            <input
-              type="date"
-              value={state.customTo?.slice(0, 10) ?? ""}
-              max={new Date().toISOString().slice(0, 10)}
-              min={new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10)}
-              onChange={(e) => setState({ customTo: e.target.value + "T23:59:59.000Z" })}
-              className="bg-[#1A1A1A] border border-[#2A2A2A] text-white text-[10px] rounded px-2 py-0.5 focus:outline-none focus:border-[#E31937]"
-            />
-          </div>
-          {cfg.note && (
-            <span className="text-[10px] font-mono text-[#505050] italic">
-              {cfg.note}
-            </span>
-          )}
-        </div>
-      )}
     </header>
   );
 }
