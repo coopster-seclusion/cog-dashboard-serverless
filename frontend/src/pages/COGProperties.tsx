@@ -1,15 +1,71 @@
+import WidgetCard from "@/components/layout/WidgetCard";
+import PropertyHeader from "@/components/widgets/PropertyHeader";
+import EstimatedOutput from "@/components/widgets/EstimatedOutput";
+import WeatherNow from "@/components/widgets/WeatherNow";
+import AnnualProgress from "@/components/widgets/AnnualProgress";
+import CarbonOffset from "@/components/widgets/CarbonOffset";
+import GenerationChart from "@/components/widgets/GenerationChart";
+import SolarIrradianceChart from "@/components/widgets/SolarIrradianceChart";
+import SystemStats from "@/components/widgets/SystemStats";
+import PPADetails from "@/components/widgets/PPADetails";
+import WeatherForecast from "@/components/widgets/WeatherForecast";
+
 export default function COGProperties() {
   return (
-    <div className="flex items-center justify-center min-h-full p-8">
-      <div className="max-w-lg w-full bg-[#111111] border border-[#2A2A2A] rounded p-8 text-center">
-        <h2 className="text-[11px] font-medium tracking-widest uppercase text-[#A0A0A0] mb-4">
-          COG Properties
-        </h2>
-        <p className="text-[13px] text-[#505050] leading-relaxed">
-          COG Properties dashboard coming soon. This page will display
-          property-level electricity data, billing analysis, and solar
-          generation metrics.
-        </p>
+    <div className="flex flex-col h-full overflow-auto">
+      {/* Property header bar — full width, not a WidgetCard */}
+      <PropertyHeader />
+
+      {/* Grid body */}
+      <div className="grid grid-cols-12 gap-3 p-4 auto-rows-min">
+
+        {/* ── ROW 1: Current Status Strip ── */}
+        <WidgetCard title="Current Output" colSpan={3}>
+          <EstimatedOutput />
+        </WidgetCard>
+
+        <WidgetCard title="Weather Now" colSpan={3}>
+          <WeatherNow />
+        </WidgetCard>
+
+        <WidgetCard title="Annual Generation Target" colSpan={3}>
+          <AnnualProgress />
+        </WidgetCard>
+
+        <WidgetCard title="Est. CO₂ Avoided" colSpan={3}>
+          <CarbonOffset />
+        </WidgetCard>
+
+        {/* ── ROW 2: Generation Chart + Solar Irradiance ── */}
+        <WidgetCard
+          title="Today's Estimated Generation"
+          subtitle="Hourly kW estimate from GHI"
+          colSpan={7}
+        >
+          <GenerationChart />
+        </WidgetCard>
+
+        <WidgetCard
+          title="Solar Irradiance — Today"
+          subtitle="Actual vs clear sky reference"
+          colSpan={5}
+        >
+          <SolarIrradianceChart />
+        </WidgetCard>
+
+        {/* ── ROW 3: System Details + PPA + 7-Day Forecast ── */}
+        <WidgetCard title="System Specifications" colSpan={4}>
+          <SystemStats />
+        </WidgetCard>
+
+        <WidgetCard title="Power Purchase Agreement" colSpan={3}>
+          <PPADetails />
+        </WidgetCard>
+
+        <WidgetCard title="7-Day Solar Forecast" colSpan={5}>
+          <WeatherForecast />
+        </WidgetCard>
+
       </div>
     </div>
   );

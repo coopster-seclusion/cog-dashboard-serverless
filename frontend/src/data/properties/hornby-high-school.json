@@ -1,0 +1,35 @@
+{
+  "id": "hornby-high-school",
+  "name": "Hornby High School",
+  "address": "180 Waterloo Road, Hornby, Christchurch 8042",
+  "coordinates": {
+    "lat": -43.5489,
+    "lng": 172.5511
+  },
+  "type": "school",
+  "system": {
+    "capacity_kw": 203.4,
+    "panels": 452,
+    "inverters": 2,
+    "inverter_kw": 110,
+    "peak_output_kw": 203,
+    "annual_target_kwh": 280000,
+    "performance_ratio": 0.78,
+    "orientation": "North",
+    "tilt_degrees": 20,
+    "install_date": "2023-01-01"
+  },
+  "contract": {
+    "type": "PPA",
+    "term_years": 25,
+    "start_date": "2023-01-01",
+    "end_date": "2048-01-01",
+    "notes": "25-year power purchase agreement"
+  },
+  "weather": {
+    "station_name": "Christchurch",
+    "lat": -43.5321,
+    "lng": 172.6362,
+    "timezone": "Pacific/Auckland"
+  }
+}

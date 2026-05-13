@@ -1,30 +1,53 @@
-import { createContext, useContext, useState } from "react";
-
-export interface PropertiesState {
-  selectedProperty: string | null;
-  dateFrom: string | null;
-  dateTo: string | null;
-}
-
-const DEFAULTS: PropertiesState = {
-  selectedProperty: null,
-  dateFrom: null,
-  dateTo: null,
-};
+import { createContext, useContext, useState, useMemo } from "react";
+import { useWeather } from "@/hooks/useWeather";
+import { getPropertyById, getAllProperties } from "@/hooks/useProperty";
+import type { Property } from "@/types/property";
+import type { OpenMeteoResponse } from "@/hooks/useWeather";
 
 interface PropertiesContextValue {
-  state: PropertiesState;
-  setState: (patch: Partial<PropertiesState>) => void;
+  selectedPropertyId: string;
+  setSelectedPropertyId: (id: string) => void;
+  property: Property | null;
+  allProperties: Property[];
+  weatherData: OpenMeteoResponse | null | undefined;
+  weatherIsLoading: boolean;
+  weatherIsError: boolean;
+  weatherLastFetched: Date | null;
+  refetchWeather: () => void;
 }
 
 const PropertiesContext = createContext<PropertiesContextValue | null>(null);
 
 export function PropertiesProvider({ children }: { children: React.ReactNode }) {
-  const [state, setStateRaw] = useState<PropertiesState>(DEFAULTS);
-  const setState = (patch: Partial<PropertiesState>) =>
-    setStateRaw((prev) => ({ ...prev, ...patch }));
+  const [selectedPropertyId, setSelectedPropertyId] = useState("hornby-high-school");
+
+  const property = useMemo(() => getPropertyById(selectedPropertyId), [selectedPropertyId]);
+  const allProperties = useMemo(() => getAllProperties(), []);
+
+  const {
+    data: weatherData,
+    isLoading: weatherIsLoading,
+    isError: weatherIsError,
+    refetch: refetchWeather,
+    dataUpdatedAt,
+  } = useWeather(property?.weather ?? null);
+
+  const weatherLastFetched = dataUpdatedAt ? new Date(dataUpdatedAt) : null;
+
   return (
-    <PropertiesContext.Provider value={{ state, setState }}>
+    <PropertiesContext.Provider
+      value={{
+        selectedPropertyId,
+        setSelectedPropertyId,
+        property: property ?? null,
+        allProperties,
+        weatherData,
+        weatherIsLoading,
+        weatherIsError,
+        weatherLastFetched,
+        refetchWeather,
+      }}
+    >
       {children}
     </PropertiesContext.Provider>
   );

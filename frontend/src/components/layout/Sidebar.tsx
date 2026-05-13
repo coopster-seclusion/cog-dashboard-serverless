@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { X, Lock } from "lucide-react";
+import { X, Lock, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDashboard, type MarketType } from "@/context/WITSContext";
+import { useProperties } from "@/context/PropertiesContext";
 import { TIME_RANGE_CONFIG } from "@/lib/timeRangeConfig";
 import {
   SCHEDULE_CONFIG,
@@ -305,10 +306,20 @@ function WITSSidebar({ onClose }: { onClose: () => void }) {
 }
 
 // ---------------------------------------------------------------------------
-// COG Properties sidebar — stub
+// COG Properties sidebar — functional
 // ---------------------------------------------------------------------------
 
 function PropertiesSidebar() {
+  const {
+    allProperties,
+    selectedPropertyId,
+    setSelectedPropertyId,
+    property,
+    weatherIsLoading,
+    weatherLastFetched,
+    refetchWeather,
+  } = useProperties();
+
   return (
     <>
       {/* PROPERTY */}
@@ -317,37 +328,51 @@ function PropertiesSidebar() {
           Property
         </p>
         <select
-          disabled
-          className="w-full bg-[#0A0A0A] border border-[#1A1A1A] text-[#303030] text-[11px] rounded px-2 py-1.5 cursor-not-allowed"
+          value={selectedPropertyId}
+          onChange={(e) => setSelectedPropertyId(e.target.value)}
+          className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white text-[11px] rounded px-2 py-1.5 focus:outline-none focus:border-[#E31937] transition-colors"
         >
-          <option>Select property…</option>
+          {allProperties.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
         </select>
-        <p className="text-[9px] text-[#505050] mt-1.5">Property data coming soon</p>
+        {property && (
+          <p className="text-[9px] text-[#505050] mt-1.5 truncate">{property.address}</p>
+        )}
       </section>
 
-      {/* DATE RANGE */}
+      {/* WEATHER */}
       <section>
         <p className="text-[10px] tracking-widest uppercase text-[#505050] mb-2">
-          Date Range
+          Weather
         </p>
-        <div className="space-y-1.5">
-          <div>
-            <label className="text-[9px] text-[#505050] block mb-0.5">From</label>
-            <input
-              type="date"
-              disabled
-              className="w-full bg-[#0A0A0A] border border-[#1A1A1A] text-[#303030] text-[10px] rounded px-2 py-1 cursor-not-allowed"
-            />
-          </div>
-          <div>
-            <label className="text-[9px] text-[#505050] block mb-0.5">To</label>
-            <input
-              type="date"
-              disabled
-              className="w-full bg-[#0A0A0A] border border-[#1A1A1A] text-[#303030] text-[10px] rounded px-2 py-1 cursor-not-allowed"
-            />
-          </div>
-        </div>
+        <button
+          onClick={() => refetchWeather()}
+          disabled={weatherIsLoading}
+          className={cn(
+            "w-full flex items-center justify-center gap-2 py-1.5 text-[11px] font-medium rounded border transition-colors",
+            weatherIsLoading
+              ? "bg-[#0A0A0A] border-[#1A1A1A] text-[#303030] cursor-not-allowed"
+              : "bg-[#1A1A1A] border-[#2A2A2A] text-[#A0A0A0] hover:border-[#E31937] hover:text-white",
+          )}
+        >
+          <RefreshCw
+            size={11}
+            className={weatherIsLoading ? "animate-spin" : ""}
+          />
+          Refresh Weather Data
+        </button>
+        {weatherLastFetched && (
+          <p className="text-[9px] text-[#505050] mt-1.5">
+            Updated{" "}
+            {weatherLastFetched.toLocaleTimeString("en-NZ", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </p>
+        )}
       </section>
     </>
   );
