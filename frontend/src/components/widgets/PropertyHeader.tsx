@@ -42,6 +42,22 @@ export default function PropertyHeader() {
         />
       </div>
 
+      {/* Inverter feed status */}
+      <div className="flex flex-col items-center gap-1.5 shrink-0 px-3">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2.5 w-2.5 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: "#4CAF50" }} />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ background: "#4CAF50" }} />
+          </span>
+          <span className="text-[11px] font-medium" style={{ color: "#4CAF50" }}>
+            Online
+          </span>
+        </div>
+        <span className="text-[9px] tracking-widest uppercase" style={{ color: "#505050" }}>
+          Inverter Feed
+        </span>
+      </div>
+
       {/* Right: property selector */}
       <div className="flex flex-col gap-1 shrink-0 min-w-[200px]">
         <label className="text-[9px] tracking-widest uppercase" style={{ color: "#505050" }}>

@@ -6,7 +6,7 @@ import TopBar from "@/components/layout/TopBar";
 import Sidebar from "@/components/layout/Sidebar";
 import NZXWITSData from "@/pages/NZXWITSData";
 import COGProperties from "@/pages/COGProperties";
-
+import FinancialOverview from "@/pages/FinancialOverview";
 
 const NAV_LINK =
   "px-4 py-2 text-[11px] font-medium tracking-widest uppercase transition-colors border-b-2";
@@ -41,6 +41,14 @@ export default function App() {
             >
               COG Properties
             </NavLink>
+            <NavLink
+              to="/financials"
+              className={({ isActive }) =>
+                `${NAV_LINK} ${isActive ? "text-white border-[#E31937]" : "text-[#505050] border-transparent hover:text-[#A0A0A0]"}`
+              }
+            >
+              Financial Overview
+            </NavLink>
           </nav>
 
           <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -49,6 +57,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<NZXWITSData />} />
               <Route path="/properties" element={<COGProperties />} />
+              <Route path="/financials" element={<FinancialOverview />} />
             </Routes>
           </main>
         </div>
