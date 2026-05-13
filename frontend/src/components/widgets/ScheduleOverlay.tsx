@@ -81,9 +81,16 @@ function ErrorState({ message }: { message: string }) {
 }
 
 export default function ScheduleOverlay() {
-  // Always pin RTD and PRSL regardless of the global schedule selector
+  // Always pin RTD and PRSL regardless of the global schedule selector.
+  // PRSL gets forward=6 (3 hours ahead). from/to are cleared so a CUSTOM
+  // time range in context doesn't create an invalid back+from conflict.
   const { data: rtdData, isLoading: l1, error: e1 } = usePrices({ schedule: "RTD" });
-  const { data: prslData, isLoading: l2 } = usePrices({ schedule: "PRSL" });
+  const { data: prslData, isLoading: l2 } = usePrices({
+    schedule: "PRSL",
+    forward: 6,
+    from: undefined,
+    to: undefined,
+  });
 
   if (l1 || l2) return <WidgetSkeleton height={282} />;
   if (e1) return <ErrorState message={(e1 as Error).message} />;
@@ -97,11 +104,15 @@ export default function ScheduleOverlay() {
 
   const series: NivoSeries[] = [...rtdSeries, ...prslSeries];
 
-  const allPoints = rtdSeries[0]?.data ?? [];
-  const tickEvery = Math.max(1, Math.floor(allPoints.length / 6));
-  const tickValues = allPoints
-    .filter((_, i) => i % tickEvery === 0)
-    .map((p) => p.x as string);
+  // "Now" separator: the latest RTD timestamp — everything to its right is forecast
+  const nowTs = rtdSeries[0]?.data.at(-1)?.x as string | undefined;
+
+  // Ticks span the full x range including PRSL future periods
+  const allTimestamps = Array.from(
+    new Set(series.flatMap((s) => s.data.map((p) => p.x as string)))
+  ).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  const tickEvery = Math.max(1, Math.floor(allTimestamps.length / 6));
+  const tickValues = allTimestamps.filter((_, i) => i % tickEvery === 0);
 
   return (
     <div>
@@ -136,6 +147,31 @@ export default function ScheduleOverlay() {
           sliceTooltip={OverlayTooltip as any}
           crosshairType="x"
           animate={false}
+          markers={
+            nowTs
+              ? [
+                  {
+                    axis: "x",
+                    value: nowTs,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    lineStyle: {
+                      stroke: "#E31937",
+                      strokeWidth: 1,
+                      strokeOpacity: 0.5,
+                      strokeDasharray: "3 4",
+                    } as any,
+                    legend: "NOW",
+                    legendPosition: "top-right",
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    legendStyle: {
+                      fill: "#505050",
+                      fontSize: 9,
+                      fontFamily: "Roboto Mono, monospace",
+                    } as any,
+                  },
+                ]
+              : []
+          }
         />
       </div>
 
