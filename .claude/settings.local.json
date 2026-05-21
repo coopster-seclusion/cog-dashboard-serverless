@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npm install *)",
       "Bash(npx vite *)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(Remove-Item \"c:\\\\Users\\\\scgen\\\\Desktop\\\\New Codespace\\\\cog_dashboard_v2\\\\cog_dashboard_v2\\\\backend\\\\wits_client.py\" -Force)",
+      "Bash(Remove-Item \"c:\\\\Users\\\\scgen\\\\Desktop\\\\New Codespace\\\\cog_dashboard_v2\\\\cog_dashboard_v2\\\\backend\\\\models.py\" -Force)"
     ]
   }
 }
