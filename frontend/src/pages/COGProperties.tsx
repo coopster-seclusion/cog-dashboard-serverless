@@ -7,7 +7,6 @@ import AnnualProgress from "@/components/widgets/property/AnnualProgress";
 import CarbonOffset from "@/components/widgets/property/CarbonOffset";
 import GenerationChart from "@/components/widgets/property/GenerationChart";
 import SolarIrradianceChart from "@/components/widgets/property/SolarIrradianceChart";
-import SchoolConsumption from "@/components/widgets/property/SchoolConsumption";
 import SystemStats from "@/components/widgets/property/SystemStats";
 import PPADetails from "@/components/widgets/property/PPADetails";
 import WeatherForecast from "@/components/widgets/property/WeatherForecast";
@@ -46,19 +45,12 @@ export default function COGProperties() {
                 <WeatherNow />
               </WidgetCard>
 
-              <WidgetCard title="Annual Generation Target" colSpan={3}>
-                <AnnualProgress />
-              </WidgetCard>
-
-              <WidgetCard title="Est. CO₂ Avoided" colSpan={3}>
-                <CarbonOffset />
+              <WidgetCard title="7-Day Solar Forecast" colSpan={6}>
+                <WeatherForecast />
               </WidgetCard>
 
               {/* ROW 2: Charts */}
-              <WidgetCard
-                title="PV Generation"
-                colSpan={7}
-              >
+              <WidgetCard title="PV Generation" colSpan={7}>
                 <GenerationChart />
               </WidgetCard>
 
@@ -70,12 +62,7 @@ export default function COGProperties() {
                 <SolarIrradianceChart />
               </WidgetCard>
 
-              {/* ROW 3: Consumption */}
-              <WidgetCard title="School Consumption" colSpan={12}>
-                <SchoolConsumption />
-              </WidgetCard>
-
-              {/* ROW 4: System details */}
+              {/* ROW 3: System details + annual targets */}
               <WidgetCard title="System Specifications" colSpan={4}>
                 <SystemStats />
               </WidgetCard>
@@ -84,8 +71,12 @@ export default function COGProperties() {
                 <PPADetails />
               </WidgetCard>
 
-              <WidgetCard title="7-Day Solar Forecast" colSpan={5}>
-                <WeatherForecast />
+              <WidgetCard title="Annual Generation Target" colSpan={3}>
+                <AnnualProgress />
+              </WidgetCard>
+
+              <WidgetCard title="Est. CO₂ Avoided" colSpan={2}>
+                <CarbonOffset />
               </WidgetCard>
             </div>
           )}

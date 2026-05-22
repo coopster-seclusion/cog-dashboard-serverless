@@ -88,7 +88,13 @@
       "PowerShell(taskkill /PID 56776 /F 2>&1)",
       "PowerShell(taskkill /PID 34456 /F 2>&1)",
       "Bash(ss -tlnp 2>/dev/null; lsof -i :8000 2>/dev/null; cat /proc/net/tcp6 2>/dev/null | grep 1F40)",
-      "Read(//proc/net/**)"
+      "Read(//proc/net/**)",
+      "Bash(curl -s \"http://localhost:8000/api/solar/plants/1687012/realtime\")",
+      "Bash(curl -s \"http://localhost:8000/api/solar/plants/1687012/energy/ytd\")",
+      "Bash(python -c \"from routers.isolar_cloud import router; print\\([r.path for r in router.routes]\\)\")",
+      "Bash(xargs rm -f)",
+      "Bash(curl -s \"http://localhost:8000/api/solar/plants/test/energy/ytd\")",
+      "Bash(curl -s \"http://localhost:8000/api/solar/plants/test/energy/\")"
     ]
   }
 }

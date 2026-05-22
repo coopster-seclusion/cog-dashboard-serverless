@@ -85,6 +85,17 @@ class YieldsResponse(BaseModel):
     yields: list[DailyYield]
 
 
+class MonthlyYield(BaseModel):
+    month: str   # YYYYMM
+    kwh: float
+
+
+class YTDResponse(BaseModel):
+    year: int
+    ytd_kwh: float
+    months: list[MonthlyYield]
+
+
 class AuthUrlResponse(BaseModel):
     url: str
     instructions: str

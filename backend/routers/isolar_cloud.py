@@ -11,6 +11,7 @@ from models.isolar_cloud import (
     PlantsResponse,
     RealtimeResponse,
     YieldsResponse,
+    YTDResponse,
 )
 from services.isolar_cloud import ISolarCloudClient, ISolarCloudError
 
@@ -160,6 +161,28 @@ def get_yields(
         raise HTTPException(status_code=502, detail=str(exc))
 
     return {"yields": yields}
+
+
+# ---------------------------------------------------------------------------
+# YTD energy (monthly aggregates via getPowerStationPointDayMonthYearDataList)
+# ---------------------------------------------------------------------------
+
+@router.get("/plants/{plant_id}/energy/ytd", response_model=YTDResponse)
+def get_ytd_energy(
+    plant_id: str,
+    year: int | None = Query(default=None, description="Year (defaults to current year)"),
+    solar: ISolarCloudClient = Depends(get_isolar_client),
+):
+    target_year = year or datetime.now().year
+    try:
+        months = solar.get_energy_by_month(plant_id, target_year)
+    except ISolarCloudError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+    ytd_kwh = round(sum(m["kwh"] for m in months), 1)
+    return {"year": target_year, "ytd_kwh": ytd_kwh, "months": months}
 
 
 # ---------------------------------------------------------------------------

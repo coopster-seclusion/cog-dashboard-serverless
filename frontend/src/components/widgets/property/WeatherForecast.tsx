@@ -44,20 +44,20 @@ export default function WeatherForecast() {
             className="flex flex-col items-center gap-1.5 min-w-[60px] flex-1 py-2 px-1 rounded"
             style={{ background: "#1A1A1A" }}
           >
-            <span className="text-[10px] font-medium" style={{ color: "#A0A0A0" }}>
+            <span className="text-[12px] font-medium" style={{ color: "#A0A0A0" }}>
               {formatDayLabel(date)}
             </span>
-            <span className="text-[18px] leading-none">{wmoEmoji(code)}</span>
-            <span className="text-[11px] font-mono text-white">{maxTemp}°</span>
+            <span className="text-[22px] leading-none">{wmoEmoji(code)}</span>
+            <span className="text-[13px] font-mono text-white">{maxTemp}°</span>
             <span
-              className="text-[9px] font-semibold tracking-wide"
+              className="text-[11px] font-semibold tracking-wide"
               style={{ color: potential.color }}
             >
               {potential.label}
             </span>
             {/* GHI bar */}
             <div
-              className="w-full h-1 rounded overflow-hidden"
+              className="w-full h-2 rounded overflow-hidden"
               style={{ background: "#2A2A2A" }}
             >
               <div

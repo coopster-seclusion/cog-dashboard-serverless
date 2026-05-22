@@ -417,3 +417,44 @@ class ISolarCloudClient:
                 series.append(row)
             result[str(ps_id)] = series
         return result
+
+    # ------------------------------------------------------------------
+    # Day / month / year aggregated data
+    # ------------------------------------------------------------------
+
+    def get_energy_by_month(self, plant_id: str, year: int) -> list[dict]:
+        """
+        Returns monthly kWh totals for the given year.
+            [{"month": "202601", "kwh": 412.3}, ...]
+        Only months up to the current month are included.
+        """
+        TS_FMT = "%Y%m%d%H%M%S"
+        start = datetime(year, 1, 1)
+        end   = datetime(year, 12, 31, 23, 59, 59)
+
+        data = self._post(
+            "/openapi/platform/getPowerStationPointDayMonthYearDataList",
+            {
+                "ps_id":             plant_id,
+                "points":            "p83022",   # daily_yield → monthly yield at this granularity
+                "is_get_point_dict": "1",
+                "start_time_stamp":  start.strftime(TS_FMT),
+                "end_time_stamp":    end.strftime(TS_FMT),
+                "time_type":         "2",         # 1=day, 2=month, 3=year
+            },
+        )
+        if data.get("result_code") != "1":
+            raise ISolarCloudError(f"Monthly energy error: {data}")
+
+        rows = data["result_data"].get(plant_id) or data["result_data"].get(str(plant_id), [])
+        result = []
+        for frame in rows:
+            ts = frame.get("time_stamp", "")
+            month_str = ts[:6]  # YYYYMM
+            try:
+                kwh = round(float(frame.get("p83022") or 0) / 1000, 1)
+            except (ValueError, TypeError):
+                kwh = 0.0
+            if month_str:
+                result.append({"month": month_str, "kwh": kwh})
+        return result
