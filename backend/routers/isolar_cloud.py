@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -10,6 +10,7 @@ from models.isolar_cloud import (
     HistoricalResponse,
     PlantsResponse,
     RealtimeResponse,
+    YieldsResponse,
 )
 from services.isolar_cloud import ISolarCloudClient, ISolarCloudError
 
@@ -134,6 +135,34 @@ def get_realtime(
 
 
 # ---------------------------------------------------------------------------
+# Daily yield totals
+# ---------------------------------------------------------------------------
+
+@router.get("/plants/{plant_id}/yields", response_model=YieldsResponse)
+def get_yields(
+    plant_id: str,
+    start: str = Query(..., description="Start date — YYYYMMDD"),
+    end: str | None = Query(default=None, description="End date — YYYYMMDD (defaults to today)"),
+    solar: ISolarCloudClient = Depends(get_isolar_client),
+):
+    DATE_FMT = "%Y%m%d"
+    try:
+        start_dt = datetime.strptime(start, DATE_FMT)
+        end_dt   = datetime.strptime(end, DATE_FMT) if end else datetime.now()
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid date format: {exc}")
+
+    try:
+        yields = solar.get_daily_yields(plant_id, start_dt, end_dt)
+    except ISolarCloudError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+    return {"yields": yields}
+
+
+# ---------------------------------------------------------------------------
 # Historical minute data
 # ---------------------------------------------------------------------------
 
@@ -153,7 +182,11 @@ def get_history(
         raise HTTPException(status_code=422, detail=f"Invalid datetime format: {exc}")
 
     try:
-        raw = solar.get_historical_data(plant_id, start_dt, end_dt, interval_minutes=interval)
+        span = (end_dt or (start_dt + timedelta(hours=3))) - start_dt
+        if span.total_seconds() > 3 * 3600:
+            raw = solar.get_historical_data_chunked(plant_id, start_dt, end_dt or start_dt + timedelta(hours=3), interval_minutes=interval)
+        else:
+            raw = solar.get_historical_data(plant_id, start_dt, end_dt, interval_minutes=interval)
     except ISolarCloudError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     except Exception as exc:

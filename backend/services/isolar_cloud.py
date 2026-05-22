@@ -274,6 +274,101 @@ class ISolarCloudClient:
     # Historical minute data
     # ------------------------------------------------------------------
 
+    def get_historical_data_chunked(
+        self,
+        plant_ids: str | list[str],
+        start_time: datetime,
+        end_time: datetime,
+        point_ids: list[str] | None = None,
+        interval_minutes: int = 5,
+        chunk_hours: int = 3,
+    ) -> dict:
+        """Splits long ranges into chunk_hours windows and fetches in parallel."""
+        from concurrent.futures import ThreadPoolExecutor
+
+        if isinstance(plant_ids, str):
+            plant_ids = [plant_ids]
+
+        chunks: list[tuple[datetime, datetime]] = []
+        t = start_time
+        while t < end_time:
+            chunks.append((t, min(t + timedelta(hours=chunk_hours), end_time)))
+            t += timedelta(hours=chunk_hours)
+
+        combined: dict[str, list] = {pid: [] for pid in plant_ids}
+
+        def fetch(span: tuple[datetime, datetime]) -> dict:
+            s, e = span
+            if s >= e:
+                return {}
+            try:
+                return self.get_historical_data(plant_ids, s, e, point_ids, interval_minutes)
+            except ISolarCloudError as exc:
+                _log.warning("history chunk %s–%s failed: %s", s, e, exc)
+                return {}
+
+        with ThreadPoolExecutor(max_workers=min(8, len(chunks) or 1)) as pool:
+            for result in pool.map(fetch, chunks):
+                for pid, records in result.items():
+                    if pid in combined:
+                        combined[pid].extend(records)
+
+        for pid in combined:
+            combined[pid].sort(key=lambda r: r.get("timestamp") or "")
+        return combined
+
+    def get_daily_yields(
+        self,
+        plant_id: str,
+        start_date: datetime,
+        end_date: datetime,
+    ) -> list[dict]:
+        """
+        Returns one kWh total per calendar day by sampling the 18:00–19:00
+        window of each day (captures end-of-day daily_yield accumulation).
+        Parallel fetches — one API call per day.
+        """
+        from concurrent.futures import ThreadPoolExecutor
+        from datetime import date as _date
+
+        days: list[datetime] = []
+        cur = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        while cur <= end_date:
+            days.append(cur)
+            cur += timedelta(days=1)
+
+        def fetch_day(day: datetime) -> dict:
+            date_str = day.strftime("%Y%m%d")
+            if day.date() == today.date():
+                now = datetime.now()
+                if now.hour >= 19:
+                    # Past 7 PM — the 18:00–19:00 window has the final daily yield
+                    window_start = day.replace(hour=18, minute=0, second=0)
+                    window_end   = day.replace(hour=19, minute=0, second=0)
+                    result = self.get_historical_data(plant_id, window_start, window_end, interval_minutes=60)
+                else:
+                    # During generation hours — floor start to last full hour boundary
+                    floored = now.replace(minute=0, second=0, microsecond=0)
+                    window_start = max(day, floored - timedelta(hours=1))
+                    window_end   = floored
+                    result = self.get_historical_data(plant_id, window_start, window_end, interval_minutes=60)
+            else:
+                window_start = day.replace(hour=18)
+                window_end   = day.replace(hour=19)
+                result  = self.get_historical_data(plant_id, window_start, window_end, interval_minutes=60)
+            try:
+                series  = result.get(plant_id, [])
+                yields  = [r["daily_yield"] for r in series if r.get("daily_yield") is not None]
+                kwh     = round(max(yields) / 1000, 1) if yields else 0.0
+            except ISolarCloudError:
+                kwh = 0.0
+            return {"date": date_str, "kwh": kwh}
+
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            results = list(pool.map(fetch_day, days))
+        return results
+
     def get_historical_data(
         self,
         plant_ids: str | list[str],

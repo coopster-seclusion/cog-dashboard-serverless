@@ -56,8 +56,7 @@ export default function COGProperties() {
 
               {/* ROW 2: Charts */}
               <WidgetCard
-                title="Today's Estimated Generation"
-                subtitle="Hourly kW estimate from GHI"
+                title="PV Generation"
                 colSpan={7}
               >
                 <GenerationChart />

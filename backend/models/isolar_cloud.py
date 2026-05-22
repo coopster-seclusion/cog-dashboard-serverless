@@ -76,6 +76,15 @@ class DevicesResponse(BaseModel):
     devices: list[DeviceSummary]
 
 
+class DailyYield(BaseModel):
+    date: str          # YYYYMMDD
+    kwh: float
+
+
+class YieldsResponse(BaseModel):
+    yields: list[DailyYield]
+
+
 class AuthUrlResponse(BaseModel):
     url: str
     instructions: str
