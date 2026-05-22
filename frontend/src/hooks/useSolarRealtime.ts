@@ -27,5 +27,6 @@ export function useSolarRealtime(psId: string | undefined) {
     enabled: !!psId,
     staleTime: 5 * 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
+    notifyOnChangeProps: "all",
   });
 }

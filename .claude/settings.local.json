@@ -45,7 +45,8 @@
       "Bash(curl -s http://localhost:8000/api/solar/plants/1685973/devices)",
       "Bash(curl -s http://localhost:8000/api/solar/plants/1685943/devices)",
       "Bash(curl -s http://localhost:8000/api/solar/plants/1685938/devices)",
-      "Bash(curl -s http://localhost:8000/api/solar/plants/1624093/devices)"
+      "Bash(curl -s http://localhost:8000/api/solar/plants/1624093/devices)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/@tanstack/react-query/package.json'\\).version\\)\")"
     ]
   }
 }

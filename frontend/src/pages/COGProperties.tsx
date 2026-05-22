@@ -16,9 +16,7 @@ import { useProperties } from "@/context/PropertiesContext";
 
 export default function COGProperties() {
   const { allProperties, setSelectedPropertyId } = useProperties();
-  const [expandedId, setExpandedId] = useState<string | null>(
-    allProperties[0]?.id ?? null
-  );
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   function toggle(id: string) {
     const next = expandedId === id ? null : id;
