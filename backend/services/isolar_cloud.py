@@ -44,19 +44,21 @@ AUTH_WEB = {
 
 # Point IDs for real-time plant data (getPowerStationRealTimeData)
 REALTIME_POINTS = {
-    "83033": "power",                   # W   — PV output power
-    "83022": "daily_yield",             # Wh  — today's PV yield
-    "83024": "total_yield",             # Wh  — all-time PV yield
-    "83106": "load_power",              # W   — site load
-    "83032": "meter_ac_power",          # W   — grid (+ve import, -ve export)
-    "83072": "feed_in_energy_today",    # Wh  — exported to grid today
-    "83102": "energy_purchased_today",  # Wh  — imported from grid today
-    "83046": "pcs_total_active_power",  # W   — battery (+ve charge, -ve discharge)
-    "83129": "battery_soc",             # %   — battery state of charge
-    "83243": "daily_battery_charge",    # Wh  — battery charged today
-    "83244": "daily_battery_discharge", # Wh  — battery discharged today
-    "83016": "ambient_temperature",     # °C
-    "83012": "irradiance",              # W/m²
+    "83033": "power",                    # W   — PV output power
+    "83022": "daily_yield",              # Wh  — today's PV yield
+    "83024": "total_yield",              # Wh  — all-time PV yield
+    "83106": "load_power",               # W   — site load
+    "83118": "daily_load_consumption",   # Wh  — today's total consumption
+    "83549": "grid_active_power",        # W   — grid (+ve import, -ve export)
+    "83072": "feed_in_energy_today",     # Wh  — exported to grid today
+    "83075": "feed_in_energy_total",     # Wh  — lifetime export to grid
+    "83102": "energy_purchased_today",   # Wh  — imported from grid today
+    "83046": "pcs_total_active_power",   # W   — battery (+ve charge, -ve discharge)
+    "83252": "battery_soc",              # %   — battery state of charge
+    "83243": "daily_battery_charge",     # Wh  — battery charged today
+    "83244": "daily_battery_discharge",  # Wh  — battery discharged today
+    "83016": "ambient_temperature",      # °C
+    "83012": "irradiance",               # W/m²
 }
 
 

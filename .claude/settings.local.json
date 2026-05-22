@@ -32,7 +32,12 @@
       "Bash(curl -s http://localhost:8000/api/solar/plants/1687012/realtime)",
       "Bash(python -m json.tool)",
       "Bash(curl -s http://localhost:8000/api/solar/plants/__TRACKED_VAR__/realtime)",
-      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\scgen\\\\Desktop\\\\New Codespace\\\\cog_dashboard_v2\\\\cog_dashboard_v2\" -Force)"
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\scgen\\\\Desktop\\\\New Codespace\\\\cog_dashboard_v2\\\\cog_dashboard_v2\" -Force)",
+      "Bash(cmd.exe /c \"for /f \\\\\"tokens=5\\\\\" %a in \\('netstat -aon ^| findstr :8000'\\) do taskkill /PID %a /F\")",
+      "Bash(taskkill /PID 53100 /F)",
+      "Bash(cmd /c \"taskkill /PID 53100 /F\")",
+      "Bash(cmd /c \"taskkill /PID 53100 /F 2>&1\")",
+      "Bash(python3 -m json.tool)"
     ]
   }
 }

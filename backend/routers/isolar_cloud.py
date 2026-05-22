@@ -69,6 +69,10 @@ def get_plants(solar: ISolarCloudClient = Depends(get_isolar_client)):
             "ps_name":            p.get("ps_name"),
             "ps_location":        p.get("ps_location"),
             "installed_capacity": p.get("design_capacity"),
+            "latitude":           p.get("latitude"),
+            "longitude":          p.get("longitude"),
+            "fault_status":       p.get("ps_fault_status"),
+            "valid_flag":         p.get("valid_flag"),
         }
         for p in raw
     ]
