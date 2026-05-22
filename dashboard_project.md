@@ -61,24 +61,60 @@ cog-dashboard-ui/
 │   │   │   │   ├── DashboardGrid.tsx # Responsive CSS grid (1→2→3 col)
 │   │   │   │   └── WidgetCard.tsx    # Base card wrapper + WidgetSkeleton export
 │   │   │   └── widgets/
-│   │   │       ├── PriceChart.tsx    # ✓ Multi-node spot price line chart
-│   │   │       ├── PriceKPIs.tsx     # ✓ Latest $/MWh per node + delta
-│   │   │       ├── PriceSpread.tsx   # ✓ HAY−BEN spread line + area fill
-│   │   │       ├── ScheduleOverlay.tsx # ✓ RTD vs PRSL overlay
-│   │   │       ├── IslandBalance.tsx    # ✓ Grouped bar — NI/SI gen vs load
-│   │   │       ├── IntermittentShare.tsx # ✓ % intermittent line chart per island
-│   │   │       └── ForwardCurve.tsx     # ✓ PRSL forward 7 TPs line chart
+│   │   │       ├── property/         # COG Properties page widgets
+│   │   │       │   ├── PropertyHeader.tsx      # Accordion header — live kW, daily kWh, inverter lights
+│   │   │       │   ├── EstimatedOutput.tsx
+│   │   │       │   ├── WeatherNow.tsx
+│   │   │       │   ├── AnnualProgress.tsx
+│   │   │       │   ├── CarbonOffset.tsx
+│   │   │       │   ├── GenerationChart.tsx
+│   │   │       │   ├── SolarIrradianceChart.tsx
+│   │   │       │   ├── SchoolConsumption.tsx
+│   │   │       │   ├── GridExport.tsx
+│   │   │       │   ├── SystemStats.tsx
+│   │   │       │   ├── PPADetails.tsx
+│   │   │       │   └── WeatherForecast.tsx
+│   │   │       ├── wits/             # WITS / market data widgets
+│   │   │       │   ├── PriceChart.tsx
+│   │   │       │   ├── PriceKPIs.tsx
+│   │   │       │   ├── PriceSpread.tsx
+│   │   │       │   ├── ScheduleOverlay.tsx
+│   │   │       │   ├── IslandBalance.tsx
+│   │   │       │   ├── IntermittentShare.tsx
+│   │   │       │   ├── ForwardCurve.tsx
+│   │   │       │   ├── RTDPriceMap.tsx
+│   │   │       │   ├── NodeTicker.tsx
+│   │   │       │   ├── EnergyGeneration.tsx
+│   │   │       │   ├── EnergyDemand.tsx
+│   │   │       │   ├── NIReserves.tsx
+│   │   │       │   ├── SIReserves.tsx
+│   │   │       │   └── new-zealand.json        # GeoJSON used by RTDPriceMap
+│   │   │       └── shared/           # Used across widget groups
+│   │   │           └── EstimatedBadge.tsx
 │   │   ├── context/
-│   │   │   └── DashboardContext.tsx  # Global filter state (schedule, nodes, timeRange…)
+│   │   │   ├── WITSContext.tsx       # Global filter state (schedule, nodes, timeRange…)
+│   │   │   └── PropertiesContext.tsx # Selected property + weather data
 │   │   ├── hooks/
-│   │   │   └── useWITS.ts    # TanStack Query hooks — all read from DashboardContext
+│   │   │   ├── useWITS.ts            # TanStack Query hooks — all read from WITSContext
+│   │   │   ├── useWeather.ts         # Open-Meteo weather hook
+│   │   │   ├── useProperty.ts        # Property registry lookup
+│   │   │   ├── useSolarDevices.ts    # Fetch inverter/ESS device list per plant (5-min poll)
+│   │   │   └── useSolarRealtime.ts   # Fetch live power + yield per plant (5-min poll)
+│   │   ├── data/
+│   │   │   └── properties/
+│   │   │       └── hornby-high-school.json     # Property config + solar_ps_id
+│   │   ├── types/
+│   │   │   └── property.ts           # Property, PropertySystem, PropertyContract interfaces
 │   │   ├── lib/
 │   │   │   ├── api.ts        # Fetch wrappers pointing at FastAPI
 │   │   │   ├── nivoTheme.ts  # Shared Nivo theme + CHART_COLORS palette
 │   │   │   └── utils.ts      # cn() helper
 │   │   ├── pages/
-│   │   │   ├── Prices.tsx    # Phase 1 widget grid (all 4 widgets live)
-│   │   │   └── Quantities.tsx # Phase 2 widget grid (stubs)
+│   │   │   ├── NZXWITSData.tsx      # Full NZX WITS data page
+│   │   │   ├── Prices.tsx           # Prices widget grid
+│   │   │   ├── Quantities.tsx       # Quantities widget grid
+│   │   │   ├── COGProperties.tsx    # Accordion list of all properties
+│   │   │   └── FinancialOverview.tsx
 │   │   ├── App.tsx
 │   │   └── main.tsx
 │   ├── index.html
@@ -228,80 +264,166 @@ GET  /api/solar/auth/url        — Returns the iSolarCloud OAuth2 consent URL (
 GET  /api/solar/auth/callback   — Receives ?code= from iSolarCloud redirect, saves tokens
 GET  /api/solar/auth/status     — { "authorised": true/false }
 
-GET  /api/solar/plants          — List all plants linked to the account
-                                  Returns: ps_id, ps_name, ps_location, installed_capacity
+GET  /api/solar/plants
+    — List all plants linked to the account
+      Returns: ps_id, ps_name, ps_location, installed_capacity,
+               latitude, longitude, fault_status, valid_flag
+
+GET  /api/solar/plants/{id}/devices
+    — List inverters and ESS devices for a plant (device_type 1 and 14 only)
+      Returns: ps_key, device_sn, device_type, type_name,
+               fault_status (1=Fault, 2=Alarm, 4=Normal), device_code
+      Sorted by device_code (Inverter 1 before Inverter 2)
+      Polled every 5 minutes by PropertyHeader
 
 GET  /api/solar/plants/{id}/realtime
-                                — Live data for one plant (5-min cadence from iSolarCloud)
-                                  Points: power, daily_yield, total_yield, load_power,
-                                  meter_ac_power, feed_in_energy_today, energy_purchased_today,
-                                  pcs_total_active_power, battery_soc, daily_battery_charge,
-                                  daily_battery_discharge, ambient_temperature, irradiance
+    — Live data for one plant (5-min cadence from iSolarCloud)
+      Points: power, daily_yield, total_yield, load_power,
+              daily_load_consumption, grid_active_power,
+              feed_in_energy_today, feed_in_energy_total,
+              energy_purchased_today, pcs_total_active_power,
+              battery_soc, daily_battery_charge, daily_battery_discharge,
+              ambient_temperature, irradiance
 
 GET  /api/solar/plants/{id}/history
     ?start=YYYYMMDDHHMMSS&end=YYYYMMDDHHMMSS&interval=5
-                                — Minute-resolution historical data for the same 13 point IDs
+    — Minute-resolution historical data for the same point IDs
 ```
+
+**iSolarCloud point IDs in use:**
+
+| Point ID | Field | Unit | Notes |
+|---|---|---|---|
+| 83033 | power | W | PV output power |
+| 83022 | daily_yield | Wh | Today's PV yield |
+| 83024 | total_yield | Wh | All-time PV yield |
+| 83106 | load_power | W | Site load |
+| 83118 | daily_load_consumption | Wh | Today's total consumption |
+| 83549 | grid_active_power | W | Grid flow (+ve import, −ve export) |
+| 83072 | feed_in_energy_today | Wh | Exported to grid today |
+| 83075 | feed_in_energy_total | Wh | Lifetime export to grid |
+| 83102 | energy_purchased_today | Wh | Imported from grid today |
+| 83046 | pcs_total_active_power | W | Battery power (undocumented plant-level point) |
+| 83252 | battery_soc | % | Battery state of charge |
+| 83243 | daily_battery_charge | Wh | Battery charged today (undocumented) |
+| 83244 | daily_battery_discharge | Wh | Battery discharged today (undocumented) |
+| 83016 | ambient_temperature | °C | |
+| 83012 | irradiance | W/m² | (undocumented plant-level point) |
+
+Battery points (83046, 83243, 83244, 83252) currently return null — no batteries installed yet.
+If plant-level battery points prove unreliable after install, switch to device-level endpoint
+`getDeviceRealTimeData` using ESS point IDs (13141 SOC, 13126 charge power, 13150 discharge power).
 
 **Known plants (as of May 2026):**
 
-| ps_id | Name |
-|---|---|
-| 1687012 | Hornby High School |
-| 1685973 | Manurewa Rural Campus |
-| 1685943 | Manurewa Intermediate — Gymnasium |
-| 1685938 | Manurewa Intermediate — Main Building |
-| 1624093 | Aquatic Centre |
+| ps_id | Name | solar_ps_id in JSON |
+|---|---|---|
+| 1687012 | Hornby High School | ✓ configured |
+| 1685973 | Manurewa Rural Campus | not yet |
+| 1685943 | Manurewa Intermediate — Gymnasium | not yet |
+| 1685938 | Manurewa Intermediate — Main Building | not yet |
+| 1624093 | Aquatic Centre | not yet |
+
+**Known devices — Hornby High School (1687012):**
+
+| ps_key | Serial | Type | Notes |
+|---|---|---|---|
+| 1687012_1_1_1 | A24C2567766 | Inverter (type 1) | Inverter 1 |
+| 1687012_1_2_1 | A24C1907022 | Inverter (type 1) | Inverter 2 |
 
 Each route validates inputs with Pydantic and returns clean, flat JSON.
 The React layer never parses nested API structures.
 
 ---
 
-## Global State — DashboardContext
+## Global State
 
-All filter controls live in `src/context/DashboardContext.tsx`. All TanStack Query hooks
-read from this context. When context state changes, queries automatically refetch because
-the query key includes the state values.
+### WITSContext (`src/context/WITSContext.tsx`)
+
+All WITS filter controls. All TanStack Query hooks read from this context.
 
 ```typescript
 interface DashboardState {
-  schedule: string;           // default "RTD"
-  marketType: "E" | "R";     // default "E"
-  nodes: string[];            // default ["OTA2201", "HAY2201", "BEN2201"]
+  schedule: string;              // default "RTD"
+  marketType: "E" | "R";        // default "E"
+  nodes: string[];               // default ["OTA2201", "HAY2201", "BEN2201"]
   island: "NI" | "SI" | "BOTH"; // default "BOTH"
   timeRange: "LIVE" | "1H" | "6H" | "24H" | "7D" | "CUSTOM";
-  from?: string;              // ISO string, only when CUSTOM
+  from?: string;                 // ISO string, only when CUSTOM
   to?: string;
-  autoRefresh: boolean;       // default true
+  autoRefresh: boolean;          // default true
   refreshInterval: 30 | 60 | 300; // seconds, default 30
 }
 ```
 
-`timeRange` maps to API params as follows:
+### PropertiesContext (`src/context/PropertiesContext.tsx`)
 
-| timeRange | back param |
-|---|---|
-| LIVE | 7 TPs (~3.5 hours) |
-| 1H | 2 TPs |
-| 6H | 12 TPs |
-| 24H | 48 TPs |
-| 7D | 48 TPs (WITS cap) |
-| CUSTOM | `from` / `to` passed directly |
+Wraps the whole app (survives route changes). `selectedPropertyId` drives both which property
+panel is expanded on the COG Properties page and which property the detail widgets render for.
+Defaults to `"hornby-high-school"` so the page always opens with a panel expanded.
+
+```typescript
+interface PropertiesContextValue {
+  selectedPropertyId: string;
+  setSelectedPropertyId: (id: string) => void;
+  property: Property | null;
+  allProperties: Property[];
+  weatherData: OpenMeteoResponse | null | undefined;
+  weatherIsLoading: boolean;
+  weatherIsError: boolean;
+  weatherLastFetched: Date | null;
+  refetchWeather: () => void;
+}
+```
 
 ### Hook signatures
 
 ```typescript
+// WITS
 usePrices(overrides?: Partial<PricesParams>, enabled?: boolean)
 usePriceSpread(nodeA: string, nodeB: string, overrides?, enabled?)
 useEnergyQuantities(overrides?: Partial<EnergyParams>, enabled?)
 useReserveQuantities(runClass: string, overrides?, enabled?)
 useSchedules()   // static, no context
 useNodes()       // static, no context
+
+// Solar
+useSolarDevices(psId: string | undefined)   // device list, 5-min poll
+useSolarRealtime(psId: string | undefined)  // live power + yield, 5-min poll
 ```
 
-`overrides` lets a widget pin specific params regardless of context. ScheduleOverlay
-uses this to always show RTD + PRSL even when the global schedule selector is changed.
+---
+
+## Property Data Model
+
+Each property lives in `src/data/properties/{id}.json` and must satisfy `Property` in
+`src/types/property.ts`. Add a new file + registry entry in `src/hooks/useProperty.ts`
+to make a new property appear on the COG Properties page automatically.
+
+Key fields:
+
+```typescript
+interface Property {
+  id: string;
+  name: string;
+  address: string;
+  coordinates: { lat: number; lng: number };
+  type: "school" | "commercial" | "industrial" | "residential";
+  solar_ps_id?: string;   // iSolarCloud ps_id — enables live data on PropertyHeader
+  system: {
+    capacity_kw: number;
+    panels: number;
+    inverters: number;
+    inverter_kw: number;
+    // ...
+  };
+  contract: { ... };
+  weather: { lat: number; lng: number; timezone: string; ... };
+}
+```
+
+`solar_ps_id` links a property to its iSolarCloud plant. If absent, the PropertyHeader
+shows `—` for live output and no inverter status lights.
 
 ---
 
@@ -311,30 +433,37 @@ uses this to always show RTD + PRSL even when the global schedule selector is ch
 ┌─────────────────────────────────────────────────────────┐
 │  TopBar (48px) — hamburger │ COG DASHBOARD │ time range │
 ├─────────────────────────────────────────────────────────┤
-│  Page tabs — Prices │ Quantities                        │
-├──────┬──────────────────────────────────────────────────┤
-│Slide │  DashboardGrid (1→2→3 col responsive)           │
-│-in   │  ┌──────────────┐ ┌──────────────┐ ┌──────┐    │
-│Side  │  │  WidgetCard  │ │  WidgetCard  │ │Widget│    │
-│bar   │  └──────────────┘ └──────────────┘ └──────┘    │
-│      │  ...                                             │
-└──────┴──────────────────────────────────────────────────┘
+│  Page tabs — NZX WITS Data │ COG Properties │ Financials│
+├─────────────────────────────────────────────────────────┤
+│  Page content (scrollable)                              │
+│                                                         │
+│  COG Properties — accordion rows, one always open:      │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │ Hornby High School [SCHOOL]  [pills]  ● Inv1     │   │
+│  │ 180 Waterloo Road...         ●Inv2  20kW 327kWh ▼│   │
+│  ├──────────────────────────────────────────────────┤   │
+│  │  12-col detail grid (widgets)                    │   │
+│  └──────────────────────────────────────────────────┘   │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │ Manurewa Rural Campus [SCHOOL] ...            ▶  │   │
+│  └──────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────┘
 ```
 
-**TopBar** — persistent, 48px. Left: hamburger (toggles sidebar) + wordmark with Tesla-red
-left-border accent. Center: `LIVE / 1H / 6H / 24H / 7D / CUSTOM` time range strip (active =
-red fill, writes to DashboardContext). Right: pulsing live dot + `LIVE` label when in live mode
-+ manual refresh button.
+**PropertyHeader** — prop-driven accordion card. Receives `property`, `isExpanded`, `onToggle`.
+Fetches its own live data independently (`useSolarDevices` + `useSolarRealtime`). Shows:
+- Left: name, type badge, address
+- Center-left: system / panels / inverters stat pills
+- Center-right: per-inverter status lights (green pulsing = Normal, orange = Alarm, red = Fault)
+- Right: live kW (green when generating) + kWh today + expand chevron
 
-**Sidebar** — 240px slide-in panel. Manages local draft state; changes only hit DashboardContext
-when `APPLY` is pressed. Contains: node multiselect, island toggle, schedule dropdown, market
-type toggle, auto-refresh switch + interval picker.
+**TopBar** — persistent, 48px. Left: hamburger + wordmark. Center: time range strip.
+Right: pulsing live dot + manual refresh button.
 
-**WidgetCard** — base wrapper for all widgets. Props: `title`, `subtitle?`, `live?`, `colSpan?`
-(1/2/3), `children`. Header row is padded; chart content area has no padding so charts bleed to
-card edges. Exports `WidgetSkeleton` for loading states.
+**Sidebar** — 240px slide-in. Manages local draft state; hits WITSContext only on APPLY.
 
-**DashboardGrid** — `grid-cols-1 lg:grid-cols-2 xl:grid-cols-3` with `gap-4 p-6`.
+**WidgetCard** — base wrapper. Props: `title`, `subtitle?`, `live?`, `colSpan?`, `children`.
+Exports `WidgetSkeleton` for loading states.
 
 ---
 
@@ -380,7 +509,6 @@ export const CHART_COLORS = [
 ```
 
 Tesla red (`#E31937`) is reserved for UI chrome only — it never appears as a data series color.
-Color assignment is index-based: the same node always gets the same color within a session.
 
 ### Nivo theme
 
@@ -395,29 +523,51 @@ Key values: `background: "transparent"`, grid lines `#1E1E1E`, crosshair `#E3193
 
 | Widget | File | Status | Data |
 |---|---|---|---|
-| Node price chart | `PriceChart.tsx` | ✓ Built | `GET /api/prices` — multi-node line chart |
-| Latest price KPIs | `PriceKPIs.tsx` | ✓ Built | Reuses `usePrices()` cache — latest value + TP delta |
-| NI/SI price spread | `PriceSpread.tsx` | ✓ Built | `GET /api/prices/spread` — HAY−BEN line + area fill |
-| RTD vs pre-dispatch | `ScheduleOverlay.tsx` | ✓ Built | Two `usePrices()` calls pinned to RTD + PRSL |
+| Node price chart | `wits/PriceChart.tsx` | ✓ | `GET /api/prices` — multi-node line chart |
+| Latest price KPIs | `wits/PriceKPIs.tsx` | ✓ | Reuses `usePrices()` cache |
+| NI/SI price spread | `wits/PriceSpread.tsx` | ✓ | `GET /api/prices/spread` |
+| RTD vs pre-dispatch | `wits/ScheduleOverlay.tsx` | ✓ | Two `usePrices()` calls pinned to RTD + PRSL |
 
 ### Phase 2 — Quantities (Quantities page) ✓ Complete
 
 | Widget | File | Status | Data |
 |---|---|---|---|
-| Island generation vs load | `IslandBalance.tsx` | ✓ Built | `GET /api/quantities/energy` — grouped bar NI vs SI |
-| Intermittent generation % | `IntermittentShare.tsx` | ✓ Built | Same endpoint — `intermittentGeneration / generation` |
-| Forward price curve | `ForwardCurve.tsx` | ✓ Built | `GET /api/prices` with `forward=7`, PRSL schedule |
+| Island generation vs load | `wits/IslandBalance.tsx` | ✓ | `GET /api/quantities/energy` |
+| Intermittent generation % | `wits/IntermittentShare.tsx` | ✓ | Same endpoint |
+| Forward price curve | `wits/ForwardCurve.tsx` | ✓ | `GET /api/prices` PRSL forward |
 
-### Phase 3 — Reserves
+### Phase 3 — COG Properties ✓ In progress
 
 | Widget | File | Status | Data |
 |---|---|---|---|
-| Reserve MW vs risk MW | `ReserveGauge.tsx` | not started | `GET /api/quantities/reserves` |
-| Reserve price ticker | `ReservePrices.tsx` | not started | `GET /api/prices` with `marketType=R` |
+| Property accordion header | `property/PropertyHeader.tsx` | ✓ | `useSolarDevices` + `useSolarRealtime` |
+| Current output | `property/EstimatedOutput.tsx` | ✓ | Estimated from GHI weather |
+| Weather now | `property/WeatherNow.tsx` | ✓ | Open-Meteo |
+| Annual progress | `property/AnnualProgress.tsx` | ✓ | Estimated |
+| CO₂ avoided | `property/CarbonOffset.tsx` | ✓ | Estimated |
+| Generation chart | `property/GenerationChart.tsx` | ✓ | Estimated hourly from GHI |
+| Solar irradiance | `property/SolarIrradianceChart.tsx` | ✓ | Open-Meteo |
+| School consumption | `property/SchoolConsumption.tsx` | ✓ | Estimated profile |
+| Grid export | `property/GridExport.tsx` | ✓ | Estimated |
+| System specs | `property/SystemStats.tsx` | ✓ | Static from property JSON |
+| PPA details | `property/PPADetails.tsx` | ✓ | Static from property JSON |
+| 7-day forecast | `property/WeatherForecast.tsx` | ✓ | Open-Meteo |
 
-### Phase 4 — Polish
+**Next for Phase 3:**
+- Wire live iSolarCloud data into GenerationChart / SchoolConsumption / GridExport
+  (currently estimated from weather — real data available from `/realtime` and `/history`)
+- Add remaining 4 properties to the registry (`solar_ps_id` + property JSON files)
+- Battery widgets once hardware is installed (~mid 2026)
 
-- Auto-refresh already wired to context (`autoRefresh` + `refreshInterval`)
+### Phase 4 — Reserves
+
+| Widget | File | Status | Data |
+|---|---|---|---|
+| Reserve MW vs risk MW | `wits/ReserveGauge.tsx` | not started | `GET /api/quantities/reserves` |
+| Reserve price ticker | `wits/ReservePrices.tsx` | not started | `GET /api/prices` with `marketType=R` |
+
+### Phase 5 — Polish
+
 - Last-updated timestamp on each widget card
 - Price spike highlighting (configurable threshold)
 - Node comparison table with sortable columns
@@ -431,7 +581,7 @@ Key values: `background: "transparent"`, grid lines `#1E1E1E`, crosshair `#E3193
 Nivo's `xScale: { type: "point" }` requires unique x values. Using formatted `HH:MM` strings
 causes duplicates on any range ≥ 24H (the same time label appears twice). Fix: store the full
 ISO timestamp as the Nivo `x` key, and use `xFormat` + `axisBottom.format` to display `HH:MM`
-only on screen. This is implemented in all four Phase 1 widgets.
+only on screen. This is implemented in all Phase 1 widgets.
 
 ### TanStack Query deduplication
 `PriceKPIs` calls `usePrices()` with the same default params as `PriceChart`. TanStack Query
@@ -439,14 +589,24 @@ returns the cached response — no second API call is made. Both components stay
 every refetch.
 
 ### ScheduleOverlay always pins RTD + PRSL
-Even when the global schedule selector in the Sidebar is changed, ScheduleOverlay passes
-`{ schedule: "RTD" }` and `{ schedule: "PRSL" }` as overrides to `usePrices()`. The override
-merges over the context value, so the widget always compares the same two schedules.
+Even when the global schedule selector is changed, ScheduleOverlay passes
+`{ schedule: "RTD" }` and `{ schedule: "PRSL" }` as overrides to `usePrices()`.
 
 ### PRSL opacity in ScheduleOverlay
 PRSL series colors use 8-digit hex (`#RRGGBBAA`). The base color gets `"99"` appended
-(≈ 60% opacity in hex) to visually distinguish pre-dispatch from actual RTD prices without
-requiring per-series dash styling (which Nivo Line doesn't support natively).
+(≈ 60% opacity) to visually distinguish pre-dispatch from actual RTD prices.
+
+### PropertyHeader expansion state
+`selectedPropertyId` in `PropertiesContext` drives which property panel is open on the
+COG Properties page. Because the context wraps the whole app and survives route changes,
+switching to NZX WITS Data and back always restores the previously open property.
+Clicking a different property header calls `setSelectedPropertyId` — the detail widgets
+below re-render for the new property automatically.
+
+### Battery point IDs
+Plant-level battery points 83046 / 83243 / 83244 are not in the iSolarCloud API reference.
+83252 (SOC) is documented. If any return null after battery installation, fall back to device-level
+`getDeviceRealTimeData` with ESS point IDs (13141, 13126, 13150, 13028, 13029).
 
 ---
 
@@ -456,7 +616,7 @@ requiring per-series dash styling (which Nivo Line doesn't support natively).
 - Quantities window: **−24 to +24 TP** (12 hours each direction)
 - `back`/`forward` and `from`/`to` are mutually exclusive — enforced in FastAPI validation
 - `forward` only returns data for schedules that publish pre-dispatch: PRSL, PRSS, NRSL, NRSS, WDS
-- Max 10,000 records per call — pagination needed for long date-range queries (Phase 4)
+- Max 10,000 records per call — pagination needed for long date-range queries (Phase 5)
 - Quantities API requires a separate WITS subscription from Market Prices
 - `back`/`forward` validated with `ge=1, le=48` at the FastAPI layer
 
