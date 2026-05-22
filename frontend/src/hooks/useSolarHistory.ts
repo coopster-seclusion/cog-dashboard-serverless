@@ -46,12 +46,16 @@ async function fetchYields(psId: string, start: Date, end: Date): Promise<Array<
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function toDayPoints(raw: RawFrame[]): HistoryPoint[] {
-  return raw
-    .filter(r => r.power != null)
-    .map(r => ({
-      label: `${r.timestamp.slice(8, 10)}:${r.timestamp.slice(10, 12)}`,
-      value: Math.round((r.power! / 1000) * 100) / 100,
-    }));
+  const seen = new Set<string>();
+  const points: HistoryPoint[] = [];
+  for (const r of raw) {
+    if (r.power == null) continue;
+    const label = `${r.timestamp.slice(8, 10)}:${r.timestamp.slice(10, 12)}`;
+    if (seen.has(label)) continue;
+    seen.add(label);
+    points.push({ label, value: Math.round((r.power / 1000) * 100) / 100 });
+  }
+  return points;
 }
 
 function yieldsToDailyPoints(yields: Array<{ date: string; kwh: number }>): HistoryPoint[] {

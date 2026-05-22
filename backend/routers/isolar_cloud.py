@@ -175,14 +175,13 @@ def get_ytd_energy(
 ):
     target_year = year or datetime.now().year
     try:
-        months = solar.get_energy_by_month(plant_id, target_year)
+        ytd_kwh = solar.get_ytd_kwh(plant_id, target_year)
     except ISolarCloudError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 
-    ytd_kwh = round(sum(m["kwh"] for m in months), 1)
-    return {"year": target_year, "ytd_kwh": ytd_kwh, "months": months}
+    return {"year": target_year, "ytd_kwh": ytd_kwh, "months": []}
 
 
 # ---------------------------------------------------------------------------

@@ -419,42 +419,36 @@ class ISolarCloudClient:
         return result
 
     # ------------------------------------------------------------------
-    # Day / month / year aggregated data
+    # YTD energy — total_yield delta from Jan 1 to now
     # ------------------------------------------------------------------
 
-    def get_energy_by_month(self, plant_id: str, year: int) -> list[dict]:
+    def get_ytd_kwh(self, plant_id: str, year: int) -> float:
         """
-        Returns monthly kWh totals for the given year.
-            [{"month": "202601", "kwh": 412.3}, ...]
-        Only months up to the current month are included.
+        Returns YTD kWh using monthly aggregates from getPowerStationPointDayMonthYearDataList.
+        data_type=4 (Total), query_type=month, p83022=daily_yield summed monthly.
         """
-        TS_FMT = "%Y%m%d%H%M%S"
-        start = datetime(year, 1, 1)
-        end   = datetime(year, 12, 31, 23, 59, 59)
-
         data = self._post(
             "/openapi/platform/getPowerStationPointDayMonthYearDataList",
             {
-                "ps_id":             plant_id,
-                "points":            "p83022",   # daily_yield → monthly yield at this granularity
+                "ps_id_list":        [int(plant_id)],
+                "data_point":        "p83022",
+                "start_time":        f"{year}01",
+                "end_time":          f"{year}12",
+                "query_type":        "month",
+                "data_type":         "4",
+                "order":             0,
                 "is_get_point_dict": "1",
-                "start_time_stamp":  start.strftime(TS_FMT),
-                "end_time_stamp":    end.strftime(TS_FMT),
-                "time_type":         "2",         # 1=day, 2=month, 3=year
             },
         )
         if data.get("result_code") != "1":
             raise ISolarCloudError(f"Monthly energy error: {data}")
 
-        rows = data["result_data"].get(plant_id) or data["result_data"].get(str(plant_id), [])
-        result = []
-        for frame in rows:
-            ts = frame.get("time_stamp", "")
-            month_str = ts[:6]  # YYYYMM
+        plant_data = data["result_data"].get(str(plant_id)) or data["result_data"].get(plant_id, {})
+        frames = plant_data.get("p83022", [])
+        total_wh = 0.0
+        for frame in frames:
             try:
-                kwh = round(float(frame.get("p83022") or 0) / 1000, 1)
+                total_wh += float(frame.get("4") or 0)
             except (ValueError, TypeError):
-                kwh = 0.0
-            if month_str:
-                result.append({"month": month_str, "kwh": kwh})
-        return result
+                pass
+        return round(total_wh / 1000, 1)

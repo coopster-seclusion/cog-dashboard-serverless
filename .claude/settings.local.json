@@ -94,7 +94,22 @@
       "Bash(python -c \"from routers.isolar_cloud import router; print\\([r.path for r in router.routes]\\)\")",
       "Bash(xargs rm -f)",
       "Bash(curl -s \"http://localhost:8000/api/solar/plants/test/energy/ytd\")",
-      "Bash(curl -s \"http://localhost:8000/api/solar/plants/test/energy/\")"
+      "Bash(curl -s \"http://localhost:8000/api/solar/plants/test/energy/\")",
+      "Bash(find /mnt/c/Users/scgen -name \"isolar_cloud.py\" 2>/dev/null)",
+      "Read(//mnt/c/Users/**)",
+      "Bash(curl -s \"http://localhost:8000/api/solar/ping\")",
+      "Bash(curl -s \"http://localhost:8000/api/solar/plants/1687012/yields?start=20260101&end=20260522\")",
+      "Bash(curl -s \"http://localhost:8000/api/solar/plants/1687012/history?start=20260101180000&end=20260101190000&interval=60\")",
+      "Bash(curl -s \"http://localhost:8000/api/solar/plants/1687012/history?start=20260101000000&end=20260101030000&interval=60\")",
+      "Bash(curl -s \"http://localhost:8000/api/solar/plants/1687012/history?start=20260501180000&end=20260501190000&interval=60\")",
+      "Bash(curl -s \"http://localhost:8000/api/solar/plants/1687012/history?start=20260201180000&end=20260201190000&interval=60\")",
+      "Bash(curl -s \"http://localhost:8000/api/solar/plants/1687012/yields?start=20260501&end=20260522\")",
+      "PowerShell($pid = \\(Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue\\).OwningProcess; if \\($pid\\) { Stop-Process -Id $pid -Force; Write-Host \"Killed PID $pid\" } else { Write-Host \"Port 8000 is free\" })",
+      "PowerShell($proc = \\(Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue\\).OwningProcess; if \\($proc\\) { Stop-Process -Id $proc -Force; Write-Host \"Killed PID $proc\" } else { Write-Host \"Port 8000 is free\" })",
+      "PowerShell(Get-WmiObject Win32_Process | Where-Object { $_.ProcessId -in @\\(56776, 34456, 23752\\) } | Select-Object ProcessId, Name, CommandLine)",
+      "Bash(pkill -f \"uvicorn\")",
+      "Bash(fuser -k 8000/tcp)",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }
