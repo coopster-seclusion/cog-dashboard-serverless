@@ -18,10 +18,11 @@ by FastAPI. Any new API exploration should happen in the Streamlit project first
 
 ```
 Browser (React) ──► FastAPI (localhost:8000) ──► WITS API (electricityinfo.co.nz)
+                                             ──► iSolarCloud API (augateway.isolarcloud.com)
 ```
 
-React never talks to WITS directly. FastAPI owns the credentials, handles OAuth tokens, and
-serves clean JSON. This means:
+React never talks to external APIs directly. FastAPI owns all credentials, handles OAuth tokens,
+and serves clean JSON. This means:
 
 - Credentials live in a `.env` file, not a sidebar input field
 - Token refresh happens server-side and is invisible to the UI
@@ -35,9 +36,18 @@ serves clean JSON. This means:
 ```
 cog-dashboard-ui/
 ├── backend/
-│   ├── main.py               # FastAPI app, route definitions
-│   ├── wits_client.py        # Copied from Streamlit project, unchanged
-│   ├── models.py             # Pydantic response models
+│   ├── main.py               # FastAPI app, lifespan, router registration
+│   ├── dependencies.py       # Shared FastAPI dependencies (get_wits_client, get_isolar_client)
+│   ├── routers/
+│   │   ├── wits.py           # All /api/* WITS routes
+│   │   └── isolar_cloud.py   # All /api/solar/* iSolarCloud routes
+│   ├── services/
+│   │   ├── wits_client.py    # WITS API client (OAuth2 client credentials)
+│   │   └── isolar_cloud.py   # iSolarCloud API client (OAuth2 authorization code)
+│   ├── models/
+│   │   ├── wits.py           # Pydantic response models for WITS routes
+│   │   └── isolar_cloud.py   # Pydantic response models for solar routes
+│   ├── token_store.json      # Persisted iSolarCloud OAuth2 tokens (git-ignored)
 │   ├── .env                  # Credentials (git-ignored)
 │   ├── .env.example          # Template committed to repo
 │   └── requirements.txt
@@ -92,8 +102,9 @@ cog-dashboard-ui/
 | **FastAPI** | Async, auto-generates OpenAPI docs at `/docs`, Pydantic validation built in |
 | **uvicorn** | ASGI server, runs FastAPI locally |
 | **python-dotenv** | Loads `.env` credentials without touching code |
-| **requests** | Already used in `wits_client.py` — keep it |
+| **requests** | HTTP client used by both API clients |
 | **pydantic** | Comes with FastAPI, used for response models |
+| **cryptography** | RSA key parsing (kept for iSolarCloud key format normalisation) |
 
 ```
 # backend/requirements.txt
@@ -102,6 +113,7 @@ uvicorn[standard]>=0.29.0
 python-dotenv>=1.0.0
 requests>=2.31.0
 pydantic>=2.0.0
+cryptography>=42.0.0
 ```
 
 ### Frontend
@@ -137,8 +149,16 @@ pip install -r requirements.txt
 Copy `.env.example` to `.env` and fill in your credentials:
 
 ```
+# WITS (required)
 WITS_CLIENT_ID=your_client_id_here
 WITS_CLIENT_SECRET=your_client_secret_here
+
+# iSolarCloud (optional — solar endpoints return 503 until configured)
+app_key=your_appkey_here
+secret_key=your_secret_key_here
+app_id=1266
+redirect_uri=http://localhost:8000/api/solar/auth/callback
+ISOLAR_SERVER=Australia          # China | International | Europe | Australia
 ```
 
 Start the API server:
@@ -148,6 +168,22 @@ uvicorn main:app --reload
 ```
 
 FastAPI runs at `http://localhost:8000`. Interactive API docs at `http://localhost:8000/docs`.
+
+#### iSolarCloud one-time OAuth2 setup
+
+Only needs to be done once. Tokens persist in `token_store.json` and auto-refresh.
+
+1. Start the backend
+2. Open `http://localhost:8000/api/solar/auth/url` — copy the returned URL
+3. Open that URL in a browser, log in to iSolarCloud, approve access
+4. Browser redirects to `http://localhost:8000/api/solar/auth/callback?code=...` automatically
+5. Server returns `{"detail": "Authorised. Tokens saved — solar endpoints are now active."}`
+6. `GET /api/solar/plants` should now return plant data
+
+**Developer portal settings required:**
+- Authorize with OAuth2.0: **Yes**
+- Redirect URL: `http://localhost:8000/api/solar/auth/callback`
+- App ID shown on the portal page (short numeric ID, e.g. `1266`)
 
 ### Frontend
 
@@ -164,6 +200,8 @@ You need both terminals running at the same time.
 ---
 
 ## FastAPI Routes
+
+### WITS — NZ Electricity Market (`/api/`)
 
 ```
 GET /api/prices
@@ -183,8 +221,40 @@ GET /api/quantities/reserves
     ?schedule=PRS&runClass=InstantaneousReserve&island=NI&back=24
 ```
 
+### iSolarCloud — Solar Inverters (`/api/solar/`)
+
+```
+GET  /api/solar/auth/url        — Returns the iSolarCloud OAuth2 consent URL (one-time setup)
+GET  /api/solar/auth/callback   — Receives ?code= from iSolarCloud redirect, saves tokens
+GET  /api/solar/auth/status     — { "authorised": true/false }
+
+GET  /api/solar/plants          — List all plants linked to the account
+                                  Returns: ps_id, ps_name, ps_location, installed_capacity
+
+GET  /api/solar/plants/{id}/realtime
+                                — Live data for one plant (5-min cadence from iSolarCloud)
+                                  Points: power, daily_yield, total_yield, load_power,
+                                  meter_ac_power, feed_in_energy_today, energy_purchased_today,
+                                  pcs_total_active_power, battery_soc, daily_battery_charge,
+                                  daily_battery_discharge, ambient_temperature, irradiance
+
+GET  /api/solar/plants/{id}/history
+    ?start=YYYYMMDDHHMMSS&end=YYYYMMDDHHMMSS&interval=5
+                                — Minute-resolution historical data for the same 13 point IDs
+```
+
+**Known plants (as of May 2026):**
+
+| ps_id | Name |
+|---|---|
+| 1687012 | Hornby High School |
+| 1685973 | Manurewa Rural Campus |
+| 1685943 | Manurewa Intermediate — Gymnasium |
+| 1685938 | Manurewa Intermediate — Main Building |
+| 1624093 | Aquatic Centre |
+
 Each route validates inputs with Pydantic and returns clean, flat JSON.
-The React layer never parses nested WITS API structures.
+The React layer never parses nested API structures.
 
 ---
 

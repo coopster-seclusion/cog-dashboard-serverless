@@ -1,1 +1,7 @@
-{}
+{
+  "isolar_cloud": {
+    "access_token": "810b54d0-8993-4f18-be6d-48cbe9781a03",
+    "refresh_token": "0c11d5ea-a0ef-4d20-a33f-603dc06f95cb",
+    "expires_at": 1779571744
+  }
+}
