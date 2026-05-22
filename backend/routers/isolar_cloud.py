@@ -6,6 +6,7 @@ from dependencies import get_isolar_client
 from models.isolar_cloud import (
     AuthStatusResponse,
     AuthUrlResponse,
+    DevicesResponse,
     HistoricalResponse,
     PlantsResponse,
     RealtimeResponse,
@@ -77,6 +78,40 @@ def get_plants(solar: ISolarCloudClient = Depends(get_isolar_client)):
         for p in raw
     ]
     return {"plants": plants}
+
+
+# ---------------------------------------------------------------------------
+# Devices
+# ---------------------------------------------------------------------------
+
+@router.get("/plants/{plant_id}/devices", response_model=DevicesResponse)
+def get_devices(
+    plant_id: str,
+    solar: ISolarCloudClient = Depends(get_isolar_client),
+):
+    try:
+        raw = solar.get_devices(plant_id, device_type_list=[1, 14])  # inverters + ESS
+    except ISolarCloudError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
+
+    devices = []
+    for d in raw:
+        ps_key = d.get("ps_key", "")
+        # ps_key format: {ps_id}_{device_type}_{device_code}_{channel_id}
+        parts = ps_key.split("_")
+        device_code = int(parts[2]) if len(parts) >= 3 and parts[2].isdigit() else None
+        devices.append({
+            "ps_key":      ps_key,
+            "device_sn":   d.get("device_sn"),
+            "device_type": d.get("device_type"),
+            "type_name":   d.get("type_name"),
+            "fault_status": d.get("dev_fault_status"),
+            "device_code": device_code,
+        })
+    devices.sort(key=lambda x: x["device_code"] or 0)
+    return {"devices": devices}
 
 
 # ---------------------------------------------------------------------------

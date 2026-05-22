@@ -1,12 +1,12 @@
 import WidgetCard from "@/components/layout/WidgetCard";
-import NodeTicker from "@/components/widgets/NodeTicker";
-import EnergyGeneration from "@/components/widgets/EnergyGeneration";
-import EnergyDemand from "@/components/widgets/EnergyDemand";
-import NIReserves from "@/components/widgets/NIReserves";
-import SIReserves from "@/components/widgets/SIReserves";
-import RTDPriceMap from "@/components/widgets/RTDPriceMap";
-import PriceChart from "@/components/widgets/PriceChart";
-import ScheduleOverlay from "@/components/widgets/ScheduleOverlay";
+import NodeTicker from "@/components/widgets/wits/NodeTicker";
+import EnergyGeneration from "@/components/widgets/wits/EnergyGeneration";
+import EnergyDemand from "@/components/widgets/wits/EnergyDemand";
+import NIReserves from "@/components/widgets/wits/NIReserves";
+import SIReserves from "@/components/widgets/wits/SIReserves";
+import RTDPriceMap from "@/components/widgets/wits/RTDPriceMap";
+import PriceChart from "@/components/widgets/wits/PriceChart";
+import ScheduleOverlay from "@/components/widgets/wits/ScheduleOverlay";
 import { useDashboard } from "@/context/WITSContext";
 
 // The first three selected nodes drive Row 1 tickers (up to 3 shown)

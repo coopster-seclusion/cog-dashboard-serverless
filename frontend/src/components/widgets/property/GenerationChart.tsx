@@ -3,7 +3,7 @@ import { ResponsiveLine } from "@nivo/line";
 import { useProperties } from "@/context/PropertiesContext";
 import { estimateKW, getTodayHourlyIndices } from "@/hooks/useWeather";
 import { nivoTheme } from "@/lib/nivoTheme";
-import EstimatedBadge from "./EstimatedBadge";
+import EstimatedBadge from "../shared/EstimatedBadge";
 
 export default function GenerationChart() {
   const { property, weatherData, weatherIsLoading } = useProperties();

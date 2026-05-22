@@ -37,7 +37,11 @@
       "Bash(taskkill /PID 53100 /F)",
       "Bash(cmd /c \"taskkill /PID 53100 /F\")",
       "Bash(cmd /c \"taskkill /PID 53100 /F 2>&1\")",
-      "Bash(python3 -m json.tool)"
+      "Bash(python3 -m json.tool)",
+      "Bash(awk '{print $5}')",
+      "PowerShell(Stop-Process -Id 52508 -Force)",
+      "Bash(npm run *)",
+      "Bash(git mv *)"
     ]
   }
 }

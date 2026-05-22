@@ -1,8 +1,8 @@
 import DashboardGrid from "@/components/layout/DashboardGrid";
 import WidgetCard from "@/components/layout/WidgetCard";
-import IslandBalance from "@/components/widgets/IslandBalance";
-import IntermittentShare from "@/components/widgets/IntermittentShare";
-import ForwardCurve from "@/components/widgets/ForwardCurve";
+import IslandBalance from "@/components/widgets/wits/IslandBalance";
+import IntermittentShare from "@/components/widgets/wits/IntermittentShare";
+import ForwardCurve from "@/components/widgets/wits/ForwardCurve";
 
 export default function Quantities() {
   return (

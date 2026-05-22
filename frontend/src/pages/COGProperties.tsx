@@ -1,16 +1,16 @@
 import WidgetCard from "@/components/layout/WidgetCard";
-import PropertyHeader from "@/components/widgets/PropertyHeader";
-import EstimatedOutput from "@/components/widgets/EstimatedOutput";
-import WeatherNow from "@/components/widgets/WeatherNow";
-import AnnualProgress from "@/components/widgets/AnnualProgress";
-import CarbonOffset from "@/components/widgets/CarbonOffset";
-import GenerationChart from "@/components/widgets/GenerationChart";
-import SolarIrradianceChart from "@/components/widgets/SolarIrradianceChart";
-import SchoolConsumption from "@/components/widgets/SchoolConsumption";
-import GridExport from "@/components/widgets/GridExport";
-import SystemStats from "@/components/widgets/SystemStats";
-import PPADetails from "@/components/widgets/PPADetails";
-import WeatherForecast from "@/components/widgets/WeatherForecast";
+import PropertyHeader from "@/components/widgets/property/PropertyHeader";
+import EstimatedOutput from "@/components/widgets/property/EstimatedOutput";
+import WeatherNow from "@/components/widgets/property/WeatherNow";
+import AnnualProgress from "@/components/widgets/property/AnnualProgress";
+import CarbonOffset from "@/components/widgets/property/CarbonOffset";
+import GenerationChart from "@/components/widgets/property/GenerationChart";
+import SolarIrradianceChart from "@/components/widgets/property/SolarIrradianceChart";
+import SchoolConsumption from "@/components/widgets/property/SchoolConsumption";
+import GridExport from "@/components/widgets/property/GridExport";
+import SystemStats from "@/components/widgets/property/SystemStats";
+import PPADetails from "@/components/widgets/property/PPADetails";
+import WeatherForecast from "@/components/widgets/property/WeatherForecast";
 
 export default function COGProperties() {
   return (

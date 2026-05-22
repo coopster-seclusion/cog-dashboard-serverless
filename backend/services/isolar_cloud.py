@@ -215,6 +215,13 @@ class ISolarCloudClient:
         )
         return data["result_data"]["pageList"]
 
+    def get_devices(self, plant_id: str, device_type_list: list[int] | None = None) -> list[dict]:
+        params: dict = {"ps_id": plant_id, "page": 1, "size": 50}
+        if device_type_list:
+            params["device_type_list"] = device_type_list
+        data = self._post("/openapi/platform/getDeviceListByPsId", params)
+        return data["result_data"]["pageList"]
+
     def get_plant_details(self, plant_ids: str | list[str]) -> list[dict]:
         ps = ",".join(plant_ids) if isinstance(plant_ids, list) else plant_ids
         data = self._post("/openapi/platform/getPowerStationDetail", {"ps_ids": ps})

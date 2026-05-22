@@ -63,6 +63,19 @@ class HistoricalResponse(BaseModel):
     plants: dict[str, list[HistoricalRecord]]
 
 
+class DeviceSummary(BaseModel):
+    ps_key: str
+    device_sn: str | None = None
+    device_type: int | None = None
+    type_name: str | None = None
+    fault_status: int | None = None  # 1=Fault, 2=Alarm, 4=Normal
+    device_code: int | None = None   # index within device type (1-based)
+
+
+class DevicesResponse(BaseModel):
+    devices: list[DeviceSummary]
+
+
 class AuthUrlResponse(BaseModel):
     url: str
     instructions: str

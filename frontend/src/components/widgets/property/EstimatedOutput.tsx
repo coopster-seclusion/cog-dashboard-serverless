@@ -1,6 +1,6 @@
 import { useProperties } from "@/context/PropertiesContext";
 import { estimateKW } from "@/hooks/useWeather";
-import EstimatedBadge from "./EstimatedBadge";
+import EstimatedBadge from "../shared/EstimatedBadge";
 
 export default function EstimatedOutput() {
   const { property, weatherData, weatherIsLoading } = useProperties();

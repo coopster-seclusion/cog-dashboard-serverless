@@ -41,5 +41,6 @@ export interface Property {
   system: PropertySystem;
   contract: PropertyContract;
   weather: PropertyWeather;
+  solar_ps_id?: string;
   notes?: string;
 }

@@ -1,9 +1,9 @@
 import DashboardGrid from "@/components/layout/DashboardGrid";
 import WidgetCard from "@/components/layout/WidgetCard";
-import PriceChart from "@/components/widgets/PriceChart";
-import PriceKPIs from "@/components/widgets/PriceKPIs";
-import PriceSpread from "@/components/widgets/PriceSpread";
-import ScheduleOverlay from "@/components/widgets/ScheduleOverlay";
+import PriceChart from "@/components/widgets/wits/PriceChart";
+import PriceKPIs from "@/components/widgets/wits/PriceKPIs";
+import PriceSpread from "@/components/widgets/wits/PriceSpread";
+import ScheduleOverlay from "@/components/widgets/wits/ScheduleOverlay";
 
 export default function Prices() {
   return (

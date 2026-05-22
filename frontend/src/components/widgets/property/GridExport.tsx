@@ -11,7 +11,7 @@ import {
   get24hExportKWh,
   getSelfConsumptionRatio,
 } from "@/lib/schoolLoadProfile";
-import EstimatedBadge from "./EstimatedBadge";
+import EstimatedBadge from "../shared/EstimatedBadge";
 
 const DISCLAIMER =
   "Live consumption data requires inverter API connection. Demand profile modeled on NZ secondary school baseline.";

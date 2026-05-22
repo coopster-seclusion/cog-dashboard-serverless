@@ -28,6 +28,7 @@
     "end_date": "2048-01-01",
     "notes": "25-year power purchase agreement"
   },
+  "solar_ps_id": "1687012",
   "weather": {
     "station_name": "Christchurch",
     "lat": -43.5321,

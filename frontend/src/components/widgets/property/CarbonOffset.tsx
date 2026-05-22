@@ -1,6 +1,6 @@
 import { useProperties } from "@/context/PropertiesContext";
 import { NZ_EMISSION_FACTOR_KG_PER_KWH } from "@/hooks/useWeather";
-import EstimatedBadge from "./EstimatedBadge";
+import EstimatedBadge from "../shared/EstimatedBadge";
 
 function getDayOfYear(date: Date): number {
   const start = new Date(date.getFullYear(), 0, 0);
