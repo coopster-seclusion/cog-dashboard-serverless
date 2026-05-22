@@ -20,6 +20,7 @@ Credentials needed in .env:
 import json
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote_plus
@@ -284,8 +285,6 @@ class ISolarCloudClient:
         chunk_hours: int = 3,
     ) -> dict:
         """Splits long ranges into chunk_hours windows and fetches in parallel."""
-        from concurrent.futures import ThreadPoolExecutor
-
         if isinstance(plant_ids, str):
             plant_ids = [plant_ids]
 
@@ -328,9 +327,6 @@ class ISolarCloudClient:
         window of each day (captures end-of-day daily_yield accumulation).
         Parallel fetches — one API call per day.
         """
-        from concurrent.futures import ThreadPoolExecutor
-        from datetime import date as _date
-
         days: list[datetime] = []
         cur = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)

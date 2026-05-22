@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-export type HistoryPeriod = "day" | "week" | "month" | "year";
+export type HistoryPeriod = "day" | "week" | "month";
 
 export interface HistoryPoint {
   label: string;
@@ -61,20 +61,6 @@ function yieldsToDailyPoints(yields: Array<{ date: string; kwh: number }>): Hist
   }));
 }
 
-function yieldsToMonthlyPoints(yields: Array<{ date: string; kwh: number }>): HistoryPoint[] {
-  const map: Record<string, number> = {};
-  for (const { date, kwh } of yields) {
-    const month = date.slice(0, 6);
-    map[month] = (map[month] ?? 0) + kwh;
-  }
-  return Object.entries(map)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([m, kwh]) => ({
-      label: MONTHS[parseInt(m.slice(4, 6)) - 1],
-      value: Math.round(kwh),
-    }));
-}
-
 export function useSolarHistory(psId: string | undefined, period: HistoryPeriod) {
   return useQuery({
     queryKey: ["solar-history", psId, period],
@@ -87,21 +73,14 @@ export function useSolarHistory(psId: string | undefined, period: HistoryPeriod)
         return { points: toDayPoints(raw), unit: "kW" };
       }
 
-      let start: Date;
-      if (period === "week") {
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
-      } else if (period === "month") {
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
-      } else {
-        start = new Date(now.getFullYear(), 0, 1);
-      }
+      const start = period === "week"
+        ? new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6)
+        : new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
 
       const yields = await fetchYields(psId!, start, now);
-      if (period === "year") return { points: yieldsToMonthlyPoints(yields), unit: "kWh" };
       return { points: yieldsToDailyPoints(yields), unit: "kWh" };
     },
     enabled: !!psId,
     staleTime: period === "day" ? 5 * 60 * 1000 : 30 * 60 * 1000,
-    notifyOnChangeProps: "all",
   });
 }
