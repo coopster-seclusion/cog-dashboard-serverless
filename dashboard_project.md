@@ -17,9 +17,13 @@ by FastAPI. Any new API exploration should happen in the Streamlit project first
 ## Architecture
 
 ```
-Browser (React) ──► FastAPI (localhost:8000) ──► WITS API (electricityinfo.co.nz)
+Browser (React) ──► FastAPI (localhost:8001) ──► WITS API (electricityinfo.co.nz)
                                              ──► iSolarCloud API (augateway.isolarcloud.com)
 ```
+
+> **Note:** Backend runs on port 8001 (not 8000) due to a persistent WSL2 proxy occupying 8000.
+> Vite proxies `/api` → `http://localhost:8001`. The OAuth2 redirect URI in the iSolarCloud
+> developer portal still points to port 8000 — only matters if tokens expire and re-auth is needed.
 
 React never talks to external APIs directly. FastAPI owns all credentials, handles OAuth tokens,
 and serves clean JSON. This means:
@@ -288,7 +292,29 @@ GET  /api/solar/plants/{id}/realtime
 GET  /api/solar/plants/{id}/history
     ?start=YYYYMMDDHHMMSS&end=YYYYMMDDHHMMSS&interval=5
     — Minute-resolution historical data for the same point IDs
+
+GET  /api/solar/plants/{id}/energy/ytd
+    ?year=2026  (optional, defaults to current year)
+    — YTD kWh total via getPowerStationPointDayMonthYearDataList (one API call, monthly aggregates)
+      Returns: { year, ytd_kwh, months: [] }
+      Implementation: sums p83022 monthly totals with data_type=4 (Total), query_type=month
 ```
+
+**getPowerStationPointDayMonthYearDataList parameters (confirmed working):**
+
+| Parameter | Type | Value for monthly | Notes |
+|---|---|---|---|
+| `ps_id_list` | List | `[int(plant_id)]` | Integer IDs in a list |
+| `data_point` | String | `"p83022"` | daily_yield point |
+| `start_time` | String | `"202601"` | YYYYMM for monthly |
+| `end_time` | String | `"202612"` | YYYYMM for monthly |
+| `query_type` | String | `"month"` | day / month / year |
+| `data_type` | String | `"4"` | 4=Total (use for monthly/yearly) |
+| `order` | Integer | `0` | 0=chronological |
+| `is_get_point_dict` | String | `"1"` | optional |
+
+Response shape: `result_data[str(plant_id)]["p83022"]` → list of `{"4": "5347300.0", "time_stamp": "202601"}`
+Values are in Wh. Key is the data_type string (`"4"`), not the point name.
 
 **iSolarCloud point IDs in use:**
 
@@ -390,6 +416,8 @@ useNodes()       // static, no context
 // Solar
 useSolarDevices(psId: string | undefined)   // device list, 5-min poll
 useSolarRealtime(psId: string | undefined)  // live power + yield, 5-min poll
+useSolarHistory(psId: string | undefined, period: "day" | "week" | "month")  // chart data
+useSolarYTD(psId: string | undefined)       // YTD kWh from /energy/ytd, 1-hour staleTime
 ```
 
 ---
@@ -543,9 +571,9 @@ Key values: `background: "transparent"`, grid lines `#1E1E1E`, crosshair `#E3193
 | Property accordion header | `property/PropertyHeader.tsx` | ✓ | `useSolarDevices` + `useSolarRealtime` |
 | Current output | `property/EstimatedOutput.tsx` | ✓ | Estimated from GHI weather |
 | Weather now | `property/WeatherNow.tsx` | ✓ | Open-Meteo |
-| Annual progress | `property/AnnualProgress.tsx` | ✓ | Estimated |
+| Annual progress | `property/AnnualProgress.tsx` | ✓ | **Live** — `useSolarYTD` → `/energy/ytd` |
 | CO₂ avoided | `property/CarbonOffset.tsx` | ✓ | Estimated |
-| Generation chart | `property/GenerationChart.tsx` | ✓ | Estimated hourly from GHI |
+| Generation chart | `property/GenerationChart.tsx` | ✓ | **Live** — day/week/month via `useSolarHistory` |
 | Solar irradiance | `property/SolarIrradianceChart.tsx` | ✓ | Open-Meteo |
 | School consumption | `property/SchoolConsumption.tsx` | ✓ | Estimated profile |
 | Grid export | `property/GridExport.tsx` | ✓ | Estimated |
@@ -553,9 +581,19 @@ Key values: `background: "transparent"`, grid lines `#1E1E1E`, crosshair `#E3193
 | PPA details | `property/PPADetails.tsx` | ✓ | Static from property JSON |
 | 7-day forecast | `property/WeatherForecast.tsx` | ✓ | Open-Meteo |
 
+**GenerationChart notes:**
+- Day view: 5-min interval line chart with time slider + `HH:MM · kW` readout. `isInteractive={false}`, custom SVG marker layer.
+- Week/month view: bar chart of daily kWh from `/yields` endpoint.
+- Year option removed — not implemented.
+- Duplicate `HH:MM` labels (from chunked history API boundaries) deduplicated in `useSolarHistory.toDayPoints`.
+
+**COGProperties layout (12-col grid):**
+- Row 1: Current Output (3) | Weather Now (3) | 7-Day Forecast (6)
+- Row 2: PV Generation chart (7) | Solar Irradiance (5)
+- Row 3: System Specs (4) | PPA Details (3) | Annual Generation Target (3) | Est. CO₂ Avoided (2)
+
 **Next for Phase 3:**
-- Wire live iSolarCloud data into GenerationChart / SchoolConsumption / GridExport
-  (currently estimated from weather — real data available from `/realtime` and `/history`)
+- Wire live iSolarCloud data into SchoolConsumption / GridExport (SchoolConsumption hidden from dropdown but file kept)
 - Add remaining 4 properties to the registry (`solar_ps_id` + property JSON files)
 - Battery widgets once hardware is installed (~mid 2026)
 
@@ -582,6 +620,10 @@ Nivo's `xScale: { type: "point" }` requires unique x values. Using formatted `HH
 causes duplicates on any range ≥ 24H (the same time label appears twice). Fix: store the full
 ISO timestamp as the Nivo `x` key, and use `xFormat` + `axisBottom.format` to display `HH:MM`
 only on screen. This is implemented in all Phase 1 widgets.
+
+For GenerationChart day view, the chunked history API can return duplicate timestamps at
+3-hour chunk boundaries. These are deduplicated in `toDayPoints` using a `Set<string>` keyed
+on `HH:MM` — first occurrence wins.
 
 ### TanStack Query deduplication
 `PriceKPIs` calls `usePrices()` with the same default params as `PriceChart`. TanStack Query
