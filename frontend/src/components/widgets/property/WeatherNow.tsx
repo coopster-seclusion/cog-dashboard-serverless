@@ -4,6 +4,7 @@ function formatTime(isoString: string, timezone: string): string {
   return new Date(isoString).toLocaleTimeString("en-NZ", {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
     timeZone: timezone,
   });
 }
@@ -37,7 +38,10 @@ export default function WeatherNow() {
     cloud_cover < 30 ? "#4CAF50" : cloud_cover < 60 ? "#FF9800" : "#505050";
 
   return (
-    <div className="px-4 py-4 flex flex-col gap-3">
+    <div className="relative px-4 py-4 flex flex-col gap-3">
+      <div className="absolute top-4 right-4 text-[10px] font-mono" style={{ color: "#404040" }}>
+        Updated {formatTime(weatherData.current.time, timezone)}
+      </div>
       {/* Temp */}
       <div className="flex items-end gap-1">
         <span className="text-3xl font-bold font-mono text-white tabular-nums">
@@ -79,6 +83,7 @@ export default function WeatherNow() {
           <span>↓ {formatTime(today.sunset[0], timezone)}</span>
         </div>
       )}
+
     </div>
   );
 }
