@@ -1,0 +1,36 @@
+{
+  "id": "manurewa-intermediate-main",
+  "name": "Manurewa Intermediate - Main Building",
+  "address": "76 Russell Road, Manurewa, Auckland 2102",
+  "coordinates": {
+    "lat": -37.02169761731304,
+    "lng": 174.88737076296368
+  },
+  "type": "school",
+  "system": {
+    "capacity_kw": 52.9,
+    "panels": 132,
+    "inverters": 1,
+    "inverter_kw": 50,
+    "peak_output_kw": 52,
+    "annual_target_kwh": 74000,
+    "performance_ratio": 0.78,
+    "orientation": "North",
+    "tilt_degrees": 15,
+    "install_date": "2024-01-01"
+  },
+  "contract": {
+    "type": "PPA",
+    "term_years": 25,
+    "start_date": "2024-01-01",
+    "end_date": "2049-01-01",
+    "notes": "25-year power purchase agreement"
+  },
+  "solar_ps_id": "1685938",
+  "weather": {
+    "station_name": "Auckland",
+    "lat": -37.02169761731304,
+    "lng": 174.88737076296368,
+    "timezone": "Pacific/Auckland"
+  }
+}

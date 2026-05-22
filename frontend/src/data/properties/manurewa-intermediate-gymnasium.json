@@ -1,0 +1,36 @@
+{
+  "id": "manurewa-intermediate-gymnasium",
+  "name": "Manurewa Intermediate - Gymnasium",
+  "address": "76 Russell Road, Manurewa, Auckland 2102",
+  "coordinates": {
+    "lat": -37.02179906020024,
+    "lng": 174.88784066265157
+  },
+  "type": "school",
+  "system": {
+    "capacity_kw": 65,
+    "panels": 163,
+    "inverters": 1,
+    "inverter_kw": 60,
+    "peak_output_kw": 65,
+    "annual_target_kwh": 91000,
+    "performance_ratio": 0.78,
+    "orientation": "North",
+    "tilt_degrees": 15,
+    "install_date": "2024-01-01"
+  },
+  "contract": {
+    "type": "PPA",
+    "term_years": 25,
+    "start_date": "2024-01-01",
+    "end_date": "2049-01-01",
+    "notes": "25-year power purchase agreement"
+  },
+  "solar_ps_id": "1685943",
+  "weather": {
+    "station_name": "Auckland",
+    "lat": -37.02179906020024,
+    "lng": 174.88784066265157,
+    "timezone": "Pacific/Auckland"
+  }
+}

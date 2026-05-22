@@ -1,0 +1,36 @@
+{
+  "id": "manurewa-rural-campus",
+  "name": "Manurewa Rural Campus",
+  "address": "20 Helland Drive, Auckland",
+  "coordinates": {
+    "lat": -37.167664,
+    "lng": 174.9716132
+  },
+  "type": "school",
+  "system": {
+    "capacity_kw": 29.92,
+    "panels": 75,
+    "inverters": 1,
+    "inverter_kw": 30,
+    "peak_output_kw": 29,
+    "annual_target_kwh": 42000,
+    "performance_ratio": 0.78,
+    "orientation": "North",
+    "tilt_degrees": 15,
+    "install_date": "2024-01-01"
+  },
+  "contract": {
+    "type": "PPA",
+    "term_years": 25,
+    "start_date": "2024-01-01",
+    "end_date": "2049-01-01",
+    "notes": "25-year power purchase agreement"
+  },
+  "solar_ps_id": "1685973",
+  "weather": {
+    "station_name": "Auckland",
+    "lat": -37.167664,
+    "lng": 174.9716132,
+    "timezone": "Pacific/Auckland"
+  }
+}
