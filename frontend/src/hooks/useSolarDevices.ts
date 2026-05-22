@@ -21,7 +21,8 @@ export function useSolarDevices(psId: string | undefined) {
     queryKey: ["solar-devices", psId],
     queryFn: () => fetchDevices(psId!),
     enabled: !!psId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
+    refetchIntervalInBackground: true,
   });
 }

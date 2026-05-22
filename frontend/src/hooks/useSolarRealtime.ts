@@ -25,8 +25,9 @@ export function useSolarRealtime(psId: string | undefined) {
     queryKey: ["solar-realtime", psId],
     queryFn: () => fetchRealtime(psId!),
     enabled: !!psId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
+    refetchIntervalInBackground: true,
     notifyOnChangeProps: "all",
   });
 }
