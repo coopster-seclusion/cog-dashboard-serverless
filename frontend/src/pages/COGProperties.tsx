@@ -1,3 +1,4 @@
+import { useState } from "react";
 import WidgetCard from "@/components/layout/WidgetCard";
 import PropertyHeader from "@/components/widgets/property/PropertyHeader";
 import EstimatedOutput from "@/components/widgets/property/EstimatedOutput";
@@ -11,73 +12,93 @@ import GridExport from "@/components/widgets/property/GridExport";
 import SystemStats from "@/components/widgets/property/SystemStats";
 import PPADetails from "@/components/widgets/property/PPADetails";
 import WeatherForecast from "@/components/widgets/property/WeatherForecast";
+import { useProperties } from "@/context/PropertiesContext";
 
 export default function COGProperties() {
+  const { allProperties, setSelectedPropertyId } = useProperties();
+  const [expandedId, setExpandedId] = useState<string | null>(
+    allProperties[0]?.id ?? null
+  );
+
+  function toggle(id: string) {
+    const next = expandedId === id ? null : id;
+    setExpandedId(next);
+    if (next) setSelectedPropertyId(next);
+  }
+
   return (
     <div className="flex flex-col h-full overflow-auto">
-      {/* Property header bar — full width, not a WidgetCard */}
-      <PropertyHeader />
+      {allProperties.map((property) => (
+        <div key={property.id}>
+          <PropertyHeader
+            property={property}
+            isExpanded={expandedId === property.id}
+            onToggle={() => toggle(property.id)}
+          />
 
-      {/* Grid body */}
-      <div className="grid grid-cols-12 gap-3 p-4 auto-rows-min">
+          {expandedId === property.id && (
+            <div className="grid grid-cols-12 gap-3 p-4 auto-rows-min"
+              style={{ background: "#0D0D0D" }}
+            >
+              {/* ROW 1: Status strip */}
+              <WidgetCard title="Current Output" colSpan={3}>
+                <EstimatedOutput />
+              </WidgetCard>
 
-        {/* ── ROW 1: Current Status Strip ── */}
-        <WidgetCard title="Current Output" colSpan={3}>
-          <EstimatedOutput />
-        </WidgetCard>
+              <WidgetCard title="Weather Now" colSpan={3}>
+                <WeatherNow />
+              </WidgetCard>
 
-        <WidgetCard title="Weather Now" colSpan={3}>
-          <WeatherNow />
-        </WidgetCard>
+              <WidgetCard title="Annual Generation Target" colSpan={3}>
+                <AnnualProgress />
+              </WidgetCard>
 
-        <WidgetCard title="Annual Generation Target" colSpan={3}>
-          <AnnualProgress />
-        </WidgetCard>
+              <WidgetCard title="Est. CO₂ Avoided" colSpan={3}>
+                <CarbonOffset />
+              </WidgetCard>
 
-        <WidgetCard title="Est. CO₂ Avoided" colSpan={3}>
-          <CarbonOffset />
-        </WidgetCard>
+              {/* ROW 2: Charts */}
+              <WidgetCard
+                title="Today's Estimated Generation"
+                subtitle="Hourly kW estimate from GHI"
+                colSpan={7}
+              >
+                <GenerationChart />
+              </WidgetCard>
 
-        {/* ── ROW 2: Generation Chart + Solar Irradiance ── */}
-        <WidgetCard
-          title="Today's Estimated Generation"
-          subtitle="Hourly kW estimate from GHI"
-          colSpan={7}
-        >
-          <GenerationChart />
-        </WidgetCard>
+              <WidgetCard
+                title="Solar Irradiance — Today"
+                subtitle="Actual vs clear sky reference"
+                colSpan={5}
+              >
+                <SolarIrradianceChart />
+              </WidgetCard>
 
-        <WidgetCard
-          title="Solar Irradiance — Today"
-          subtitle="Actual vs clear sky reference"
-          colSpan={5}
-        >
-          <SolarIrradianceChart />
-        </WidgetCard>
+              {/* ROW 3: Consumption + Export */}
+              <WidgetCard title="School Consumption" colSpan={6}>
+                <SchoolConsumption />
+              </WidgetCard>
 
-        {/* ── ROW 2.5: School Consumption + Grid Export ── */}
-        <WidgetCard title="School Consumption" colSpan={6}>
-          <SchoolConsumption />
-        </WidgetCard>
+              <WidgetCard title="Grid Export" colSpan={6}>
+                <GridExport />
+              </WidgetCard>
 
-        <WidgetCard title="Grid Export" colSpan={6}>
-          <GridExport />
-        </WidgetCard>
+              {/* ROW 4: System details */}
+              <WidgetCard title="System Specifications" colSpan={4}>
+                <SystemStats />
+              </WidgetCard>
 
-        {/* ── ROW 3: System Details + PPA + 7-Day Forecast ── */}
-        <WidgetCard title="System Specifications" colSpan={4}>
-          <SystemStats />
-        </WidgetCard>
+              <WidgetCard title="Power Purchase Agreement" colSpan={3}>
+                <PPADetails />
+              </WidgetCard>
 
-        <WidgetCard title="Power Purchase Agreement" colSpan={3}>
-          <PPADetails />
-        </WidgetCard>
-
-        <WidgetCard title="7-Day Solar Forecast" colSpan={5}>
-          <WeatherForecast />
-        </WidgetCard>
-
-      </div>
+              <WidgetCard title="7-Day Solar Forecast" colSpan={5}>
+                <WeatherForecast />
+              </WidgetCard>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

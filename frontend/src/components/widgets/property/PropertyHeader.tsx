@@ -1,106 +1,122 @@
-import { useProperties } from "@/context/PropertiesContext";
+import type { Property } from "@/types/property";
 import { useSolarDevices } from "@/hooks/useSolarDevices";
+import { useSolarRealtime } from "@/hooks/useSolarRealtime";
 import type { SolarDevice } from "@/hooks/useSolarDevices";
 
-export default function PropertyHeader() {
-  const { property, allProperties, selectedPropertyId, setSelectedPropertyId } =
-    useProperties();
-  const { data: devices } = useSolarDevices(property?.solar_ps_id);
+interface Props {
+  property: Property;
+  isExpanded: boolean;
+  onToggle: () => void;
+}
+
+export default function PropertyHeader({ property, isExpanded, onToggle }: Props) {
+  const { data: devices } = useSolarDevices(property.solar_ps_id);
+  const { data: realtime } = useSolarRealtime(property.solar_ps_id);
 
   const inverters = (devices ?? []).filter((d) => d.device_type === 1 || d.device_type === 14);
 
-  if (!property) return null;
+  const powerKw   = typeof realtime?.power?.value === "number"
+    ? (realtime.power.value / 1000).toFixed(1)
+    : null;
+  const yieldKwh  = typeof realtime?.daily_yield?.value === "number"
+    ? (realtime.daily_yield.value / 1000).toFixed(1)
+    : null;
 
   return (
     <div
-      className="w-full px-6 py-4 flex items-center justify-between gap-6 shrink-0"
+      className="w-full px-6 py-4 flex items-center gap-6 shrink-0 cursor-pointer select-none transition-colors"
       style={{
-        background: "#111111",
+        background: isExpanded ? "#161616" : "#111111",
         borderBottom: "1px solid #2A2A2A",
+        borderLeft: isExpanded ? "3px solid #E31937" : "3px solid transparent",
       }}
+      onClick={onToggle}
     >
-      {/* Left: name + address + type badge */}
-      <div className="flex flex-col gap-0.5 min-w-0">
+      {/* Name + address + type badge */}
+      <div className="flex flex-col gap-0.5 min-w-0 shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold text-white leading-tight truncate">
+          <h2 className="text-base font-bold text-white leading-tight truncate">
             {property.name}
-          </h1>
+          </h2>
           <span
-            className="text-[9px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded"
+            className="text-[11px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded shrink-0"
             style={{ background: "#003344", color: "#00BCD4" }}
           >
             {property.type}
           </span>
         </div>
-        <p className="text-[11px]" style={{ color: "#A0A0A0" }}>
+        <p className="text-[13px] truncate" style={{ color: "#606060" }}>
           {property.address}
         </p>
       </div>
 
-      {/* Center: stat pills */}
+      {/* Stat pills — immediately right of name block */}
       <div className="flex items-center gap-2 shrink-0">
         <StatPill value={`${property.system.capacity_kw} kW`} label="System" />
-        <StatPill value={`${property.system.panels}`} label="Panels" />
+        <StatPill value={`${property.system.panels}`}         label="Panels" />
         <StatPill
           value={`${property.system.inverters} × ${property.system.inverter_kw} kW`}
           label="Inverters"
         />
       </div>
 
-      {/* Per-inverter status */}
-      <div className="flex flex-col gap-1.5 shrink-0 px-3">
-        <span className="text-[9px] tracking-widest uppercase" style={{ color: "#505050" }}>
-          Inverters
-        </span>
-        {inverters.length === 0 ? (
-          <span className="text-[11px]" style={{ color: "#505050" }}>—</span>
-        ) : (
-          inverters.map((inv, i) => (
+      {/* Spacer pushes everything after this to the right */}
+      <div className="flex-1" />
+
+      {/* Inverter status lights */}
+      {inverters.length > 0 && (
+        <div className="flex flex-col gap-1 shrink-0">
+          {inverters.map((inv, i) => (
             <InverterStatus key={inv.ps_key} inverter={inv} index={i + 1} />
-          ))
-        )}
+          ))}
+        </div>
+      )}
+
+      {/* Live output */}
+      <div className="flex items-center gap-4 shrink-0">
+        <LiveStat
+          value={powerKw !== null ? `${powerKw} kW` : "—"}
+          label="Now"
+          highlight={powerKw !== null && parseFloat(powerKw) > 0}
+        />
+        <LiveStat
+          value={yieldKwh !== null ? `${yieldKwh} kWh` : "—"}
+          label="Today"
+        />
       </div>
 
-      {/* Right: property selector */}
-      <div className="flex flex-col gap-1 shrink-0 min-w-[200px]">
-        <label className="text-[9px] tracking-widest uppercase" style={{ color: "#505050" }}>
-          Property
-        </label>
-        <select
-          value={selectedPropertyId}
-          onChange={(e) => setSelectedPropertyId(e.target.value)}
-          className="w-full text-[11px] rounded px-2 py-1.5 focus:outline-none transition-colors"
-          style={{
-            background: "#1A1A1A",
-            border: "1px solid #2A2A2A",
-            color: "#FFFFFF",
-          }}
-        >
-          {allProperties.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+      {/* Expand chevron */}
+      <div
+        className="shrink-0 ml-2 transition-transform duration-200"
+        style={{
+          transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+          color: "#505050",
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </div>
     </div>
   );
 }
 
-const FAULT_STATUS: Record<number, { color: string; label: string; pulse: boolean }> = {
-  1: { color: "#F44336", label: "Fault",  pulse: false },
-  2: { color: "#FF9800", label: "Alarm",  pulse: false },
-  4: { color: "#4CAF50", label: "Normal", pulse: true  },
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+const FAULT_STATUS: Record<number, { color: string; pulse: boolean }> = {
+  1: { color: "#F44336", pulse: false },
+  2: { color: "#FF9800", pulse: false },
+  4: { color: "#4CAF50", pulse: true  },
 };
 
 function InverterStatus({ inverter, index }: { inverter: SolarDevice; index: number }) {
   const status = inverter.fault_status != null
-    ? (FAULT_STATUS[inverter.fault_status] ?? { color: "#505050", label: "Unknown", pulse: false })
-    : { color: "#505050", label: "—", pulse: false };
+    ? (FAULT_STATUS[inverter.fault_status] ?? { color: "#505050", pulse: false })
+    : { color: "#505050", pulse: false };
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="relative flex h-2.5 w-2.5 shrink-0">
+    <div className="flex items-center gap-1.5">
+      <span className="relative flex h-2 w-2 shrink-0">
         {status.pulse && (
           <span
             className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60"
@@ -108,11 +124,11 @@ function InverterStatus({ inverter, index }: { inverter: SolarDevice; index: num
           />
         )}
         <span
-          className="relative inline-flex rounded-full h-2.5 w-2.5"
+          className="relative inline-flex rounded-full h-2 w-2"
           style={{ background: status.color }}
         />
       </span>
-      <span className="text-[11px] font-medium" style={{ color: status.color }}>
+      <span className="text-[12px]" style={{ color: "#808080" }}>
         Inverter {index}
       </span>
     </div>
@@ -123,15 +139,24 @@ function StatPill({ value, label }: { value: string; label: string }) {
   return (
     <div
       className="flex flex-col px-3 py-1.5 rounded"
-      style={{
-        background: "#1A1A1A",
-        borderLeft: "2px solid #E31937",
-      }}
+      style={{ background: "#1A1A1A", borderLeft: "2px solid #E31937" }}
     >
-      <span className="text-[13px] font-bold font-mono text-white tabular-nums">
+      <span className="text-[14px] font-bold font-mono text-white tabular-nums">{value}</span>
+      <span className="text-[11px] tracking-widest uppercase" style={{ color: "#505050" }}>{label}</span>
+    </div>
+  );
+}
+
+function LiveStat({ value, label, highlight }: { value: string; label: string; highlight?: boolean }) {
+  return (
+    <div className="flex flex-col items-end">
+      <span
+        className="text-[16px] font-bold font-mono tabular-nums"
+        style={{ color: highlight ? "#4CAF50" : "#C0C0C0" }}
+      >
         {value}
       </span>
-      <span className="text-[9px] tracking-widest uppercase" style={{ color: "#505050" }}>
+      <span className="text-[11px] tracking-widest uppercase" style={{ color: "#505050" }}>
         {label}
       </span>
     </div>
