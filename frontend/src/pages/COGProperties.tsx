@@ -1,14 +1,13 @@
 import { useState } from "react";
 import WidgetCard from "@/components/layout/WidgetCard";
 import PropertyHeader from "@/components/widgets/property/PropertyHeader";
-import EstimatedOutput from "@/components/widgets/property/EstimatedOutput";
+import CurrentOutput from "@/components/widgets/property/CurrentOutput";
 import WeatherNow from "@/components/widgets/property/WeatherNow";
 import AnnualProgress from "@/components/widgets/property/AnnualProgress";
 import CarbonOffset from "@/components/widgets/property/CarbonOffset";
 import GenerationChart from "@/components/widgets/property/GenerationChart";
 import SolarIrradianceChart from "@/components/widgets/property/SolarIrradianceChart";
 import SchoolConsumption from "@/components/widgets/property/SchoolConsumption";
-import GridExport from "@/components/widgets/property/GridExport";
 import SystemStats from "@/components/widgets/property/SystemStats";
 import PPADetails from "@/components/widgets/property/PPADetails";
 import WeatherForecast from "@/components/widgets/property/WeatherForecast";
@@ -40,7 +39,7 @@ export default function COGProperties() {
             >
               {/* ROW 1: Status strip */}
               <WidgetCard title="Current Output" colSpan={3}>
-                <EstimatedOutput />
+                <CurrentOutput />
               </WidgetCard>
 
               <WidgetCard title="Weather Now" colSpan={3}>
@@ -72,13 +71,9 @@ export default function COGProperties() {
                 <SolarIrradianceChart />
               </WidgetCard>
 
-              {/* ROW 3: Consumption + Export */}
-              <WidgetCard title="School Consumption" colSpan={6}>
+              {/* ROW 3: Consumption */}
+              <WidgetCard title="School Consumption" colSpan={12}>
                 <SchoolConsumption />
-              </WidgetCard>
-
-              <WidgetCard title="Grid Export" colSpan={6}>
-                <GridExport />
               </WidgetCard>
 
               {/* ROW 4: System details */}
