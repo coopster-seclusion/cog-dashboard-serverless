@@ -11,6 +11,7 @@ export interface PlantRealtime {
   daily_yield: MeasurePoint | null;
   total_yield: MeasurePoint | null;
   battery_soc: MeasurePoint | null;
+  irradiance: MeasurePoint | null;
 }
 
 async function fetchRealtime(psId: string): Promise<PlantRealtime | null> {

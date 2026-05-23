@@ -73,8 +73,9 @@ export function useWeather(weather: PropertyWeather | null) {
     queryKey: ["weather", weather?.lat, weather?.lng],
     queryFn: () => fetchWeatherData(weather!),
     enabled: !!weather,
-    staleTime: 15 * 60 * 1000,
-    refetchInterval: false,
+    staleTime: 10 * 60 * 1000,
+    refetchInterval: 15 * 60 * 1000,
+    refetchIntervalInBackground: true,
     refetchOnWindowFocus: false,
   });
 }

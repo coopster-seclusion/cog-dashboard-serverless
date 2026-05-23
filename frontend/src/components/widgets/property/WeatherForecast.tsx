@@ -1,8 +1,8 @@
 import { useProperties } from "@/context/PropertiesContext";
 import { solarPotentialLabel, wmoEmoji } from "@/hooks/useWeather";
 
-function formatDayLabel(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-NZ", { weekday: "short" });
+function formatDayLabel(dateStr: string, timezone: string): string {
+  return new Date(dateStr).toLocaleDateString("en-NZ", { weekday: "short", timeZone: timezone });
 }
 
 export default function WeatherForecast() {
@@ -27,6 +27,7 @@ export default function WeatherForecast() {
   }
 
   const daily = weatherData.daily;
+  const timezone = weatherData.timezone;
   const maxGHI = Math.max(...daily.shortwave_radiation_sum);
 
   return (
@@ -45,7 +46,7 @@ export default function WeatherForecast() {
             style={{ background: "#1A1A1A" }}
           >
             <span className="text-[12px] font-medium" style={{ color: "#A0A0A0" }}>
-              {formatDayLabel(date)}
+              {formatDayLabel(date, timezone)}
             </span>
             <span className="text-[22px] leading-none">{wmoEmoji(code)}</span>
             <span className="text-[13px] font-mono text-white">{maxTemp}°</span>

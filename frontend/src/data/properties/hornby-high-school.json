@@ -3,8 +3,8 @@
   "name": "Hornby High School",
   "address": "180 Waterloo Road, Hornby, Christchurch 8042",
   "coordinates": {
-    "lat": -43.5489,
-    "lng": 172.5511
+    "lat": -43.537817,
+    "lng": 172.526247
   },
   "type": "school",
   "system": {
@@ -30,9 +30,9 @@
   },
   "solar_ps_id": "1687012",
   "weather": {
-    "station_name": "Christchurch",
-    "lat": -43.5321,
-    "lng": 172.6362,
+    "station_name": "Hornby",
+    "lat": -43.537817,
+    "lng": 172.526247,
     "timezone": "Pacific/Auckland"
   }
 }

@@ -1,4 +1,6 @@
 import { useProperties } from "@/context/PropertiesContext";
+import { useSolarRealtime } from "@/hooks/useSolarRealtime";
+import { clearSkyPeakGHI, clearSkyGHIAtHour } from "@/hooks/useWeather";
 
 function formatTime(isoString: string, timezone: string): string {
   return new Date(isoString).toLocaleTimeString("en-NZ", {
@@ -9,8 +11,16 @@ function formatTime(isoString: string, timezone: string): string {
   });
 }
 
+// Parse decimal hour from Open-Meteo ISO string e.g. "2026-05-23T13:30" (local time, no offset)
+function parseDecimalHour(isoStr: string): number {
+  const t = isoStr.split("T")[1] ?? "0:0";
+  const [h, m] = t.split(":").map(Number);
+  return h + (m || 0) / 60;
+}
+
 export default function WeatherNow() {
   const { property, weatherData, weatherIsLoading } = useProperties();
+  const { data: realtime } = useSolarRealtime(property?.solar_ps_id);
 
   if (weatherIsLoading) {
     return (
@@ -34,8 +44,22 @@ export default function WeatherNow() {
   const today = weatherData.daily;
   const timezone = property.weather.timezone;
 
+  // Derive cloud cover from actual irradiance vs clear-sky model.
+  // iSolarCloud irradiance (83012) is ground truth — much more accurate than NWP model cloud_cover.
+  const actualIrradiance = typeof realtime?.irradiance?.value === "number" ? realtime.irradiance.value : null;
+  const sunriseHour  = today.sunrise[0] ? parseDecimalHour(today.sunrise[0]) : 6;
+  const sunsetHour   = today.sunset[0]  ? parseDecimalHour(today.sunset[0])  : 20;
+  const solarNoon    = (sunriseHour + sunsetHour) / 2;
+  const currentHour  = parseDecimalHour(weatherData.current.time);
+  const peakGHI      = clearSkyPeakGHI(new Date(weatherData.current.time));
+  const clearSkyGHI  = clearSkyGHIAtHour(currentHour, solarNoon, peakGHI, sunriseHour, sunsetHour);
+
+  const effectiveCloudCover = (actualIrradiance !== null && clearSkyGHI > 20)
+    ? Math.max(0, Math.min(100, Math.round((1 - actualIrradiance / clearSkyGHI) * 100)))
+    : cloud_cover;
+
   const cloudColor =
-    cloud_cover < 30 ? "#4CAF50" : cloud_cover < 60 ? "#FF9800" : "#505050";
+    effectiveCloudCover < 30 ? "#4CAF50" : effectiveCloudCover < 60 ? "#FF9800" : "#505050";
 
   return (
     <div className="relative px-4 py-4 flex flex-col gap-3">
@@ -57,13 +81,13 @@ export default function WeatherNow() {
         <div className="flex justify-between text-[10px]">
           <span style={{ color: "#A0A0A0" }}>Cloud Cover</span>
           <span className="font-mono" style={{ color: cloudColor }}>
-            {cloud_cover}%
+            {effectiveCloudCover}%
           </span>
         </div>
         <div className="h-1.5 rounded overflow-hidden" style={{ background: "#1A1A1A" }}>
           <div
             className="h-full rounded transition-all"
-            style={{ width: `${cloud_cover}%`, background: cloudColor }}
+            style={{ width: `${effectiveCloudCover}%`, background: cloudColor }}
           />
         </div>
       </div>
