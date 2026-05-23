@@ -41,7 +41,7 @@ export default function PropertyHeader({ property, isExpanded, onToggle }: Props
           </h2>
           <span
             className="text-[11px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded shrink-0"
-            style={{ background: "#003344", color: "#00BCD4" }}
+            style={TYPE_BADGE[property.type] ?? TYPE_BADGE.school}
           >
             {property.type}
           </span>
@@ -102,6 +102,13 @@ export default function PropertyHeader({ property, isExpanded, onToggle }: Props
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
+
+const TYPE_BADGE: Record<string, { background: string; color: string }> = {
+  school:      { background: "#003344", color: "#00BCD4" },
+  commercial:  { background: "#2D2200", color: "#FFB300" },
+  industrial:  { background: "#1A0D2E", color: "#9C27B0" },
+  residential: { background: "#0D2200", color: "#4CAF50" },
+};
 
 const FAULT_STATUS: Record<number, { color: string; pulse: boolean }> = {
   1: { color: "#F44336", pulse: false },
