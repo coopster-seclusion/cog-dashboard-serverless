@@ -109,7 +109,10 @@
       "PowerShell(Get-WmiObject Win32_Process | Where-Object { $_.ProcessId -in @\\(56776, 34456, 23752\\) } | Select-Object ProcessId, Name, CommandLine)",
       "Bash(pkill -f \"uvicorn\")",
       "Bash(fuser -k 8000/tcp)",
-      "Bash(echo \"exit: $?\")"
+      "Bash(echo \"exit: $?\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('scripts',{}\\), indent=2\\)\\)\")",
+      "Bash(findstr \":5173 \")",
+      "Bash(npx playwright *)"
     ]
   }
 }

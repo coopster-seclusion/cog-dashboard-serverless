@@ -32,7 +32,7 @@ export default function COGProperties() {
             onToggle={() => toggle(property.id)}
           />
 
-          {expandedId === property.id && property.id === "hornby-high-school" && (
+          {expandedId === property.id && !!property.solar_ps_id && (
             <div className="grid grid-cols-12 gap-3 p-4 auto-rows-min"
               style={{ background: "#0D0D0D" }}
             >
@@ -81,7 +81,7 @@ export default function COGProperties() {
             </div>
           )}
 
-          {expandedId === property.id && property.id !== "hornby-high-school" && (
+          {expandedId === property.id && !property.solar_ps_id && (
             <div
               className="flex items-center justify-center py-10"
               style={{ background: "#0D0D0D", borderBottom: "1px solid #2A2A2A" }}
