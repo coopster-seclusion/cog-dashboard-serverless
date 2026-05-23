@@ -613,6 +613,16 @@ Key values: `background: "transparent"`, grid lines `#1E1E1E`, crosshair `#E3193
 
 ---
 
+## Open Investigations / TODOs
+
+- **NZ MetService API** — explore as a replacement/supplement for Open-Meteo cloud cover.
+  MetService provides satellite-derived cloud data for NZ which would be far more accurate than
+  the NWP model values Open-Meteo uses. Current workaround: cloud cover is derived from actual
+  iSolarCloud irradiance (83012) vs a clear-sky model during daylight hours. MetService would
+  give accurate cloud cover at all times including night and for properties without solar sensors.
+
+---
+
 ## Implementation Notes
 
 ### X-axis uniqueness (important)

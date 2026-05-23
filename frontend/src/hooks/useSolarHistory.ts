@@ -86,5 +86,7 @@ export function useSolarHistory(psId: string | undefined, period: HistoryPeriod)
     },
     enabled: !!psId,
     staleTime: period === "day" ? 5 * 60 * 1000 : 30 * 60 * 1000,
+    refetchInterval: period === "day" ? 5 * 60 * 1000 : false,
+    refetchIntervalInBackground: period === "day",
   });
 }
