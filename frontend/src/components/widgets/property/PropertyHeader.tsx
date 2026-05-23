@@ -63,15 +63,17 @@ export default function PropertyHeader({ property, isExpanded, onToggle }: Props
 
       {/* Right: Last updated + inverter status + live stats + chevron */}
       <div className="flex items-center gap-4 justify-self-end">
-        <LastUpdated timestamp={dataUpdatedAt} />
-
-        {inverters.length > 0 && (
-          <div className="flex flex-col gap-1 shrink-0">
-            {inverters.map((inv, i) => (
-              <InverterStatus key={inv.ps_key} inverter={inv} index={i + 1} />
-            ))}
-          </div>
-        )}
+        {/* Fixed-width block keeps live stats aligned across all headers */}
+        <div className="flex items-center gap-3 justify-end shrink-0" style={{ width: 176 }}>
+          <LastUpdated timestamp={dataUpdatedAt} />
+          {inverters.length > 0 && (
+            <div className="flex flex-col gap-1 shrink-0">
+              {inverters.map((inv, i) => (
+                <InverterStatus key={inv.ps_key} inverter={inv} index={i + 1} />
+              ))}
+            </div>
+          )}
+        </div>
 
         <LiveStat
           value={powerKw !== null ? `${powerKw} kW` : "—"}
@@ -159,7 +161,7 @@ function LastUpdated({ timestamp }: { timestamp: number }) {
 
 function LiveStat({ value, label, highlight }: { value: string; label: string; highlight?: boolean }) {
   return (
-    <div className="flex flex-col items-end">
+    <div className="flex flex-col items-end shrink-0" style={{ minWidth: 72 }}>
       <span
         className="text-[16px] font-bold font-mono tabular-nums"
         style={{ color: highlight ? "#4CAF50" : "#C0C0C0" }}
