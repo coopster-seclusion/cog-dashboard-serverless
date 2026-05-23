@@ -19,7 +19,7 @@ export default function App() {
     // TopBar/Sidebar always have context regardless of active route.
     <WITSProvider>
       <PropertiesProvider>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="flex flex-col h-screen overflow-hidden">
           <TopBar onMenuToggle={() => setSidebarOpen((o) => !o)} />
 
