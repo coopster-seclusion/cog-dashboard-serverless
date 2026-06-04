@@ -16,7 +16,9 @@ venv\Scripts\activate          # Windows
 # source venv/bin/activate     # Mac/Linux
 pip install -r requirements.txt
 copy .env.example .env         # then fill in WITS_CLIENT_ID + WITS_CLIENT_SECRET
-uvicorn main:app --reload
+# uvicorn main:app --reload
+uvicorn main:app --port 8001
+FastAPI: `http://localhost:8001` · Interactive docs: `http://localhost:8001/docs`
 ```
 API: `http://localhost:8000` · Interactive docs: `http://localhost:8000/docs`
 
