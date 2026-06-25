@@ -17,15 +17,15 @@ Credentials needed in .env:
   ISOLAR_SERVER — (optional) China | International | Europe | Australia (default)
 """
 
-import json
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from pathlib import Path
 from urllib.parse import quote_plus
 
 import requests
+
+from services.token_store import FileTokenStore
 
 _log = logging.getLogger(__name__)
 
@@ -76,6 +76,7 @@ class ISolarCloudClient:
         redirect_uri: str,
         server: str = "Australia",
         token_store_path: str = "token_store.json",
+        token_store=None,
     ):
         self.appkey = appkey
         self.secret_key = secret_key
@@ -83,7 +84,8 @@ class ISolarCloudClient:
         self.redirect_uri = redirect_uri
         self.gateway = SERVERS[server]
         self._auth_web, self._cloud_id = AUTH_WEB[server]
-        self._token_store_path = Path(token_store_path)
+        # Persistence backend: injected store (e.g. Postgres) or a local JSON file.
+        self._store = token_store or FileTokenStore(token_store_path)
         self._tokens: dict | None = None
         self._load_tokens()
 
@@ -92,22 +94,12 @@ class ISolarCloudClient:
     # ------------------------------------------------------------------
 
     def _load_tokens(self) -> None:
-        try:
-            data = json.loads(self._token_store_path.read_text())
-            stored = data.get("isolar_cloud")
-            if stored and stored.get("access_token"):
-                self._tokens = stored
-                _log.info("iSolarCloud: tokens loaded from token_store.json")
-        except (FileNotFoundError, json.JSONDecodeError, KeyError):
-            pass
+        stored = self._store.load()
+        if stored and stored.get("access_token"):
+            self._tokens = stored
 
     def _save_tokens(self) -> None:
-        try:
-            data = json.loads(self._token_store_path.read_text())
-        except (FileNotFoundError, json.JSONDecodeError):
-            data = {}
-        data["isolar_cloud"] = self._tokens
-        self._token_store_path.write_text(json.dumps(data, indent=2))
+        self._store.save(self._tokens)
 
     # ------------------------------------------------------------------
     # OAuth2 flow

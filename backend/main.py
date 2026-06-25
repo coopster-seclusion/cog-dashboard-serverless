@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 import dependencies
 from services.wits_client import WITSClient
 from services.isolar_cloud import ISolarCloudClient
+from services.token_store import make_token_store
 from routers import wits as wits_router
 from routers import isolar_cloud as solar_router
 from routers import cron as cron_router
@@ -44,7 +45,7 @@ async def lifespan(app: FastAPI):
             app_id=isolar_app_id,
             redirect_uri=isolar_redirect,
             server=server_raw,
-            token_store_path="token_store.json",
+            token_store=make_token_store(),
         )
         if dependencies._isolar_client.is_authorised:
             _log.info("iSolarCloud: valid tokens loaded from token_store.json — ready.")

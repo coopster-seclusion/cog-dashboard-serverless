@@ -11,6 +11,10 @@ services:
         sync: false
       - key: WITS_CLIENT_SECRET
         sync: false
+      # Persistent token store (Neon/Postgres). Required for iSolarCloud to
+      # survive free-tier spin-downs; without it, solar tokens are lost on restart.
+      - key: DATABASE_URL
+        sync: false
       # iSolarCloud — optional. Solar endpoints stay disabled if unset.
       - key: app_key
         sync: false
