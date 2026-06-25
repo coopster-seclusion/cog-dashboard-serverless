@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: cog-dashboard
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      # WITS — required. Set in the Render dashboard (not committed).
+      - key: WITS_CLIENT_ID
+        sync: false
+      - key: WITS_CLIENT_SECRET
+        sync: false
+      # iSolarCloud — optional. Solar endpoints stay disabled if unset.
+      - key: app_key
+        sync: false
+      - key: secret_key
+        sync: false
+      - key: app_id
+        sync: false
+      - key: redirect_uri
+        sync: false
+      - key: ISOLAR_SERVER
+        sync: false

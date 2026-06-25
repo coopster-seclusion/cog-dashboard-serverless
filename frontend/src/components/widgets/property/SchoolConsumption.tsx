@@ -134,7 +134,7 @@ export default function SchoolConsumption() {
               layers={[
                 "grid",
                 // Fill between demand and generation lines
-                ({ series }: Record<string, unknown>) => {
+                ({ series }: any) => {
                   const seriesArr = series as Array<{
                     id: string;
                     data: Array<{ position: { x: number; y: number }; data: { y: number } }>;
@@ -177,7 +177,7 @@ export default function SchoolConsumption() {
                 "axes",
                 "lines",
                 // Current hour marker
-                ({ xScale }: Record<string, unknown>) => {
+                ({ xScale }: any) => {
                   const scale = xScale as (v: number) => number;
                   const x = scale(currentHour);
                   return (
