@@ -3,8 +3,17 @@ WITS Electricity Market API Client
 https://developer.electricityinfo.co.nz/
 """
 
+import os
 import time
 import requests
+
+from services.cache import TTLCache, ttl_cached
+
+# Short-lived cache for WITS read calls. Collapses repeated/concurrent identical
+# requests (multiple tabs, widgets, polls) into one upstream call to stay under
+# WITS rate limits. Tune via WITS_CACHE_TTL_SECONDS (default 120s).
+_CACHE_TTL = float(os.getenv("WITS_CACHE_TTL_SECONDS", "120"))
+_wits_cache = TTLCache(_CACHE_TTL)
 
 
 # Common NZ grid nodes for easy reference
@@ -226,6 +235,7 @@ class WITSClient:
     # ------------------------------------------------------------------
     # Schedules
     # ------------------------------------------------------------------
+    @ttl_cached(_wits_cache)
     def get_schedules(self) -> list[dict]:
         """Return available market price schedules from the API."""
         resp = requests.get(
@@ -252,6 +262,7 @@ class WITSClient:
     # ------------------------------------------------------------------
     # Market Prices
     # ------------------------------------------------------------------
+    @ttl_cached(_wits_cache)
     def get_spot_prices(
         self,
         schedule: str,
@@ -306,6 +317,7 @@ class WITSClient:
             "raw": raw,
         }
 
+    @ttl_cached(_wits_cache)
     def get_prices_by_node(
         self,
         schedule: str,
@@ -369,6 +381,7 @@ class WITSClient:
     # ------------------------------------------------------------------
     # Energy Quantities
     # ------------------------------------------------------------------
+    @ttl_cached(_wits_cache)
     def get_energy_quantities(
         self,
         schedule: str,
@@ -400,6 +413,7 @@ class WITSClient:
     # ------------------------------------------------------------------
     # Reserve Quantities
     # ------------------------------------------------------------------
+    @ttl_cached(_wits_cache)
     def get_reserve_quantities(
         self,
         schedule: str,
