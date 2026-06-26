@@ -127,7 +127,13 @@
       "Bash(python -c \"import main; print\\('app imports OK, routes =', len\\(main.app.routes\\)\\)\")",
       "Bash(python -c \"import main; print\\('backend imports OK; routes =', len\\(main.app.routes\\)\\)\")",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}, indent=2\\)\\)\")",
-      "PowerShell(Get-Content \"c:\\\\Users\\\\scgen\\\\cog-dashboard-serverless\\\\frontend\\\\package.json\" | ConvertFrom-Json | ForEach-Object { $_.dependencies.PSObject.Properties + $_.devDependencies.PSObject.Properties } | Where-Object { $_.Name -match \"react\" } | Select-Object Name, Value)"
+      "PowerShell(Get-Content \"c:\\\\Users\\\\scgen\\\\cog-dashboard-serverless\\\\frontend\\\\package.json\" | ConvertFrom-Json | ForEach-Object { $_.dependencies.PSObject.Properties + $_.devDependencies.PSObject.Properties } | Where-Object { $_.Name -match \"react\" } | Select-Object Name, Value)",
+      "Bash(python -c \"import authlib, itsdangerous, httpx, starlette\")",
+      "Bash(python -m venv venv)",
+      "Bash(./venv/Scripts/python.exe -m pip install -q -r requirements.txt)",
+      "Bash(GOOGLE_CLIENT_ID=x GOOGLE_CLIENT_SECRET=y ALLOWED_DOMAIN=cognz.com ./venv/Scripts/python.exe -c \"import main; print\\('main import OK'\\); print\\([r.path for r in main.app.routes if getattr\\(r,'path',''\\).startswith\\('/api/auth'\\)]\\)\")",
+      "Bash(GOOGLE_CLIENT_ID=x GOOGLE_CLIENT_SECRET=y ALLOWED_DOMAIN=cognz.com SESSION_SECRET=test ./venv/Scripts/python.exe -c ' *)",
+      "Bash(git checkout *)"
     ]
   }
 }

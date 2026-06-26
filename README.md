@@ -52,6 +52,11 @@ React: `http://localhost:5173` (Vite proxies `/api` → `http://localhost:8001`)
 | `app_id`        | no       | iSolarCloud.                                                          |
 | `redirect_uri`  | no       | iSolarCloud OAuth callback. Must match the deployed URL in prod.      |
 | `ISOLAR_SERVER` | no       | Defaults to `Australia`.                                              |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | prod | Google SSO OAuth client. Without them the login route returns `503`. |
+| `SESSION_SECRET` | prod    | Signs the session cookie. Ephemeral (sessions reset on restart) if unset. |
+| `ALLOWED_DOMAIN` | prod    | Google Workspace domain allowed to sign in (e.g. `cognz.com`).        |
+| `ALLOWED_EMAILS` | no      | Optional extra comma-separated allowlist, in addition to the domain.  |
+| `PUBLIC_BASE_URL` | prod   | Builds the OAuth redirect URI + sets the cookie Secure flag. `http://localhost:5173` locally. |
 
 See [backend/.env.example](backend/.env.example). The backend reads `.env` locally; in
 production set these in the host's dashboard (they are never committed).
@@ -93,6 +98,32 @@ iSolarCloud uses an OAuth2 authorization-code flow that needs a one-time browser
 4. Verify with `https://<your-render-url>/api/solar/auth/status` → `{"authorised": true}`.
 
 Tokens are stored in Postgres (`DATABASE_URL`), so they survive restarts and redeploys.
+
+### Google SSO (gates the whole dashboard)
+
+A Google sign-in screen sits in front of the app. Only verified accounts in the
+COG Google Workspace domain (`ALLOWED_DOMAIN`, e.g. `cognz.com`) can reach the
+dashboard or its data APIs; everyone else sees only the login page. The backend
+runs the OAuth2/OIDC flow (the browser never holds the client secret) and stores a
+signed session cookie — there is no session table.
+
+**Google Cloud Console (one-time)**
+
+1. **APIs & Services → OAuth consent screen** → **Internal** (COG Workspace), so
+   Google auto-restricts sign-in to the org.
+2. **Credentials → Create OAuth client ID → Web application.**
+3. **Authorized redirect URIs** (must match character-for-character):
+   - `https://cog-dashboard.onrender.com/api/auth/google/callback`
+   - `http://localhost:5173/api/auth/google/callback` (local dev)
+4. Copy the client ID + secret into `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+
+**Endpoints** — `GET /api/auth/google/login` (start), `GET /api/auth/google/callback`
+(verify + set session), `GET /api/auth/me` (current user or `401`),
+`POST /api/auth/logout`. These and `/api/health` are public; all `/api/solar/*`
+routes require a valid session (`401` otherwise).
+
+Locally, set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ALLOWED_DOMAIN=cognz.com`
+in `backend/.env` and sign in via Vite at `http://localhost:5173`.
 
 **Notes for the free tier**
 - The instance spins down after ~15 min idle; the next request incurs a cold start (~1 min).

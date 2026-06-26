@@ -1,18 +1,22 @@
 from contextlib import asynccontextmanager
 import logging
 import os
+import secrets
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
 import dependencies
+from dependencies import require_user
 from services.isolar_cloud import ISolarCloudClient
 from services.token_store import make_token_store
 from routers import isolar_cloud as solar_router
 from routers import cron as cron_router
+from routers import auth as auth_router
 
 load_dotenv()
 
@@ -65,7 +69,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(solar_router.router, prefix="/api/solar")
+# Signed session cookie for Google SSO (no session table). Secret must be stable
+# across restarts in prod (set SESSION_SECRET) or sessions reset on every deploy.
+_session_secret = os.getenv("SESSION_SECRET")
+if not _session_secret:
+    _session_secret = secrets.token_urlsafe(32)
+    _log.warning("SESSION_SECRET not set — using an ephemeral secret; sessions reset on restart.")
+
+_PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://localhost:5173")
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=_session_secret,
+    https_only=_PUBLIC_BASE_URL.startswith("https"),  # Secure flag off for http localhost
+    same_site="lax",
+    max_age=7 * 24 * 3600,  # 7-day session
+)
+
+# Auth routes are public (they enforce the gate). Solar data routes require a
+# valid SSO session. /api/health (cron router) stays public for Render checks.
+app.include_router(auth_router.router, prefix="/api/auth")
+app.include_router(
+    solar_router.router,
+    prefix="/api/solar",
+    dependencies=[Depends(require_user)],
+)
 app.include_router(cron_router.router, prefix="/api")
 
 
