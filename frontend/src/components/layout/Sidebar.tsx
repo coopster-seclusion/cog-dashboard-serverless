@@ -11,16 +11,23 @@ interface SidebarProps {
 // COG Properties sidebar
 // ---------------------------------------------------------------------------
 
-function PropertiesSidebar() {
+function PropertiesSidebar({ onClose }: { onClose: () => void }) {
   const {
     allProperties,
     selectedPropertyId,
     setSelectedPropertyId,
+    setExpandedId,
     property,
     weatherIsLoading,
     weatherLastFetched,
     refetchWeather,
   } = useProperties();
+
+  function selectProperty(id: string) {
+    setSelectedPropertyId(id);
+    setExpandedId(id); // expand the chosen property in the main view
+    onClose();         // and dismiss the drawer so it's visible
+  }
 
   return (
     <>
@@ -31,7 +38,7 @@ function PropertiesSidebar() {
         </p>
         <select
           value={selectedPropertyId}
-          onChange={(e) => setSelectedPropertyId(e.target.value)}
+          onChange={(e) => selectProperty(e.target.value)}
           className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white text-[11px] rounded px-2 min-h-[40px] md:min-h-0 py-2.5 md:py-1.5 focus:outline-none focus:border-[#E31937] transition-colors"
         >
           {allProperties.map((p) => (
@@ -114,7 +121,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* Scrollable controls */}
         <div className="flex-1 overflow-y-auto px-4 py-5 space-y-6">
-          <PropertiesSidebar />
+          <PropertiesSidebar onClose={onClose} />
         </div>
       </aside>
     </>

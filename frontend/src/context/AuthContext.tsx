@@ -35,10 +35,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    // Drop the dashboard's cached (now-unauthorized) data and re-check auth.
-    queryClient.clear();
-    await queryClient.invalidateQueries({ queryKey: ["auth-me"] });
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      // Drop the dashboard's cached (now-unauthorized) data, then do a full
+      // reload so auth is re-evaluated from scratch (the session cookie is now
+      // cleared, so /api/auth/me returns 401 and the login screen shows). The
+      // hard reload avoids any stale in-memory query state lingering.
+      queryClient.clear();
+      window.location.assign("/");
+    }
   }
 
   return (

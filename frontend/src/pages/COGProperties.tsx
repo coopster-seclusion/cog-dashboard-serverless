@@ -1,4 +1,3 @@
-import { useState } from "react";
 import WidgetCard from "@/components/layout/WidgetCard";
 import PropertyHeader from "@/components/widgets/property/PropertyHeader";
 import CurrentOutput from "@/components/widgets/property/CurrentOutput";
@@ -13,8 +12,7 @@ import WeatherForecast from "@/components/widgets/property/WeatherForecast";
 import { useProperties } from "@/context/PropertiesContext";
 
 export default function COGProperties() {
-  const { allProperties, setSelectedPropertyId } = useProperties();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const { allProperties, setSelectedPropertyId, expandedId, setExpandedId } = useProperties();
 
   function toggle(id: string) {
     const next = expandedId === id ? null : id;
