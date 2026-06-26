@@ -6,11 +6,6 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
     envVars:
-      # WITS — required. Set in the Render dashboard (not committed).
-      - key: WITS_CLIENT_ID
-        sync: false
-      - key: WITS_CLIENT_SECRET
-        sync: false
       # Persistent token store (Neon/Postgres). Required for iSolarCloud to
       # survive free-tier spin-downs; without it, solar tokens are lost on restart.
       - key: DATABASE_URL

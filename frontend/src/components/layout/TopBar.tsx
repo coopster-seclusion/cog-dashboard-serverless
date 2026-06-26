@@ -1,8 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { Menu, RefreshCw, Lock } from "lucide-react";
+import { Menu, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDashboard } from "@/context/WITSContext";
-import { TIME_RANGE_CONFIG } from "@/lib/timeRangeConfig";
 
 // Returns current NZT trading period number and HH:MM
 function getNZTPInfo(): { tp: number; time: string } {
@@ -34,10 +32,8 @@ interface TopBarProps {
 }
 
 export default function TopBar({ onMenuToggle }: TopBarProps) {
-  const { state, lastRefreshed, setLastRefreshed } = useDashboard();
   const queryClient = useQueryClient();
-  const isLive = state.timeRange === "LIVE";
-  const cfg = TIME_RANGE_CONFIG[state.timeRange];
+  const [lastRefreshed, setLastRefreshed] = useState(() => new Date());
 
   const [tpInfo, setTPInfo] = useState(getNZTPInfo);
   const [elapsed, setElapsed] = useState(0);
@@ -60,12 +56,12 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
         setLastRefreshed(new Date());
       }
     });
-  }, [queryClient, setLastRefreshed]);
+  }, [queryClient]);
 
   const handleRefresh = useCallback(() => {
     queryClient.invalidateQueries();
     setLastRefreshed(new Date());
-  }, [queryClient, setLastRefreshed]);
+  }, [queryClient]);
 
   return (
     <header className="flex flex-col shrink-0 bg-[#111111] border-b border-[#2A2A2A]">
@@ -87,7 +83,7 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
           </div>
         </div>
 
-        {/* Right — TP info + elapsed + live dot + refresh */}
+        {/* Right — TP info + elapsed + refresh */}
         <div className="flex items-center gap-3 ml-auto">
           <span className="text-[11px] font-mono text-[#505050] whitespace-nowrap">
             TP {tpInfo.tp} · {tpInfo.time}
@@ -95,28 +91,6 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
           <span className="text-[10px] font-mono text-[#505050] whitespace-nowrap">
             Updated {formatElapsed(elapsed)}
           </span>
-
-          {isLive ? (
-            <div className="flex items-center gap-1.5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22C55E] opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#22C55E]" />
-              </span>
-              <span className="text-[11px] font-semibold tracking-widest text-[#E31937]">
-                LIVE
-              </span>
-            </div>
-          ) : (
-            <div
-              className="flex items-center gap-1 text-[10px] font-mono text-[#505050]"
-              title={cfg.note ?? undefined}
-            >
-              {!cfg.scheduleOverrideable && (
-                <Lock size={10} className="opacity-50" />
-              )}
-              <span>{state.schedule}</span>
-            </div>
-          )}
 
           <button
             onClick={handleRefresh}

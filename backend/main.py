@@ -9,10 +9,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 import dependencies
-from services.wits_client import WITSClient
 from services.isolar_cloud import ISolarCloudClient
 from services.token_store import make_token_store
-from routers import wits as wits_router
 from routers import isolar_cloud as solar_router
 from routers import cron as cron_router
 
@@ -23,15 +21,6 @@ _log = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # WITS — required
-    wits_id = os.getenv("WITS_CLIENT_ID")
-    wits_secret = os.getenv("WITS_CLIENT_SECRET")
-    if not wits_id or not wits_secret:
-        raise RuntimeError(
-            "WITS_CLIENT_ID and WITS_CLIENT_SECRET must be set in backend/.env"
-        )
-    dependencies._wits_client = WITSClient(wits_id, wits_secret)
-
     # iSolarCloud — optional, starts gracefully if credentials are missing
     isolar_appkey     = os.getenv("app_key")
     isolar_secret_key = os.getenv("secret_key")
@@ -63,8 +52,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="NZ Electricity Market Dashboard API",
-    version="1.0.0",
+    title="COG Properties Dashboard API",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -76,7 +65,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(wits_router.router, prefix="/api")
 app.include_router(solar_router.router, prefix="/api/solar")
 app.include_router(cron_router.router, prefix="/api")
 
