@@ -32,7 +32,7 @@ function PropertiesSidebar() {
         <select
           value={selectedPropertyId}
           onChange={(e) => setSelectedPropertyId(e.target.value)}
-          className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white text-[11px] rounded px-2 py-1.5 focus:outline-none focus:border-[#E31937] transition-colors"
+          className="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white text-[11px] rounded px-2 min-h-[40px] md:min-h-0 py-2.5 md:py-1.5 focus:outline-none focus:border-[#E31937] transition-colors"
         >
           {allProperties.map((p) => (
             <option key={p.id} value={p.id}>
@@ -54,7 +54,7 @@ function PropertiesSidebar() {
           onClick={() => refetchWeather()}
           disabled={weatherIsLoading}
           className={cn(
-            "w-full flex items-center justify-center gap-2 py-1.5 text-[11px] font-medium rounded border transition-colors",
+            "w-full flex items-center justify-center gap-2 min-h-[40px] md:min-h-0 py-2.5 md:py-1.5 text-[11px] font-medium rounded border transition-colors",
             weatherIsLoading
               ? "bg-[#0A0A0A] border-[#1A1A1A] text-[#303030] cursor-not-allowed"
               : "bg-[#1A1A1A] border-[#2A2A2A] text-[#A0A0A0] hover:border-[#E31937] hover:text-white",

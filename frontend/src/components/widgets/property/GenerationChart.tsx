@@ -3,6 +3,7 @@ import { ResponsiveLine } from "@nivo/line";
 import { ResponsiveBar } from "@nivo/bar";
 import { useProperties } from "@/context/PropertiesContext";
 import { useSolarHistory, type HistoryPeriod } from "@/hooks/useSolarHistory";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { nivoTheme } from "@/lib/nivoTheme";
 
 const PERIODS: { key: HistoryPeriod; label: string }[] = [
@@ -13,6 +14,7 @@ const PERIODS: { key: HistoryPeriod; label: string }[] = [
 
 export default function GenerationChart() {
   const { property } = useProperties();
+  const isNarrow = useMediaQuery("(max-width: 767px)");
   const [period, setPeriod] = useState<HistoryPeriod>("day");
   const { data: history, isLoading, isError } = useSolarHistory(property?.solar_ps_id, period);
   const [sliderIndex, setSliderIndex] = useState(0);
@@ -32,10 +34,11 @@ export default function GenerationChart() {
     return [{ id: "Power", data: history.points.map(p => ({ x: p.label, y: p.value })) }];
   }, [history, period]);
 
-  const wholeHourTicks = useMemo(
-    () => history?.points.filter(p => p.label.endsWith(":00")).map(p => p.label) ?? [],
-    [history],
-  );
+  const wholeHourTicks = useMemo(() => {
+    const hours = history?.points.filter(p => p.label.endsWith(":00")).map(p => p.label) ?? [];
+    // Halve tick density on phones so the time labels don't overlap.
+    return isNarrow ? hours.filter((_, i) => i % 2 === 0) : hours;
+  }, [history, isNarrow]);
 
   const isEmpty = !history?.points.length;
 
@@ -48,7 +51,7 @@ export default function GenerationChart() {
             <button
               key={key}
               onClick={() => setPeriod(key)}
-              className="px-3 py-1 text-[11px] tracking-widest uppercase rounded transition-colors"
+              className="inline-flex items-center justify-center min-h-[40px] md:min-h-0 px-3 py-2 md:py-1 text-[11px] tracking-widest uppercase rounded transition-colors"
               style={{
                 background: period === key ? "#E31937" : "#1A1A1A",
                 color:      period === key ? "#fff"    : "#606060",

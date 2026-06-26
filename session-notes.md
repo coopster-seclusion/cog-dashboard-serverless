@@ -1,139 +1,142 @@
 # Session Notes — COG Dashboard
 
-> Planning for the **next** session. Written 2026-06-26.
+> Planning for the **next** session. Updated 2026-06-26.
 
 ---
 
-## Next session: Google SSO (auth gate in front of the dashboard)
+## ✅ Done: Google SSO (auth gate in front of the dashboard)
 
-### Goal
+Shipped and verified working locally. A Google sign-in screen now sits in front
+of the whole app; only verified `cognz.com` Workspace accounts reach the dashboard
+or its data APIs.
 
-Put a Google sign-in landing page in front of the app. Only approved Google
-accounts (the COG team) can reach the COG Properties dashboard or its data APIs.
-Everyone else sees a login screen and nothing else.
+### What shipped
 
-### Where we're starting from
+**Backend** (backend-mediated OIDC — browser never holds the client secret)
+- `routers/auth.py` — Authlib Google OIDC flow:
+  `GET /api/auth/google/login` → `GET /api/auth/google/callback` (verifies ID
+  token, checks allowlist, sets session) → `GET /api/auth/me` → `POST /api/auth/logout`.
+- `dependencies.require_user` — 401 if no session.
+- `main.py` — `SessionMiddleware` (signed cookie, `SameSite=Lax`, `Secure` auto-on
+  for https, **7-day** expiry). Auth router public; **whole `/api/solar/*` router
+  gated** with `require_user`; `/api/health` stays public for Render.
+- `requirements.txt` — added `authlib`, `itsdangerous`, `httpx`.
 
-- Single FastAPI service serves the React SPA as static files (one Render service).
-- One page: **COG Properties at `/`**. No auth today — anyone with the URL sees it.
-- Backend routers: `isolar_cloud.py` (`/api/solar/*`), `cron.py` (`/api/health`).
-- Persistence available: **Neon Postgres** via `DATABASE_URL` (already used for iSolar tokens).
-- Frontend: React 18 + Vite + TanStack Query + React Router v6 + Tailwind/shadcn.
-- Deploy: Docker on Render (free), TLS provided by Render. SPA fallback serves
-  `index.html` for all non-`/api/*` paths (see `main.py` `serve_spa`).
+**Frontend**
+- `context/AuthContext.tsx` — polls `/api/auth/me`; exposes `user` /
+  `isAuthenticated` / `logout`.
+- `pages/Login.tsx` — branded dark login with one "Sign in with Google" button;
+  shows `?error=unauthorized`.
+- `App.tsx` — route guard: spinner while loading → `<Login/>` if unauthenticated →
+  dashboard (data queries only mount once authed).
+- `TopBar.tsx` — avatar + email + Sign out.
 
-### Chosen approach (backend-mediated Google OIDC + session cookie)
-
-Mirror the pattern already used for iSolarCloud: the **backend** runs the OAuth2
-flow, the browser never holds client secrets.
-
-```
-Browser → "Sign in with Google" → GET /api/auth/google/login
-  → redirect to Google consent
-  → Google → GET /api/auth/google/callback?code=...
-  → backend verifies ID token, checks allowlist, sets httpOnly session cookie
-  → redirect to /
-Frontend calls GET /api/auth/me on load → shows dashboard or login page
-Protected data routes require the session cookie (401 otherwise)
-```
-
-Session = signed cookie via **Starlette `SessionMiddleware`** (simplest; stateless,
-no session table needed). Store just `{email, name, picture, exp}`. Revoke by
-rotating `SESSION_SECRET` or shortening expiry. (DB-backed sessions are an option
-later if we need server-side revocation.)
+**Config** — `.env.example`, `render.yaml` (`SESSION_SECRET` via `generateValue`,
+`ALLOWED_DOMAIN=cognz.com`, `PUBLIC_BASE_URL`), README "Google SSO" section.
 
 ### Access control
 
-Restrict to an allowlist — pick one (decision below):
-- **Domain restriction** (preferred if COG uses Google Workspace): only
-  `hd == <company-domain>` from the verified ID token.
-- **Explicit email allowlist** via env var (`ALLOWED_EMAILS=a@x.com,b@x.com`).
+The gate is the **verified email domain** (`ALLOWED_DOMAIN=cognz.com`), with the
+Workspace `hd` claim logged as corroboration. `ALLOWED_EMAILS` is an optional extra
+allowlist. **Fails closed**: if neither is set, nobody can sign in.
 
-Enforce on the **API**, not just the UI: a `require_user` FastAPI dependency that
-reads the session and 401s if absent/expired. Apply to all `/api/solar/*` routes.
-Keep `/api/health` and the auth routes **public**.
+### Still TODO before prod use
 
-### Backend work
+- Register the **prod** redirect URI in Google Cloud Console:
+  `https://cog-dashboard.onrender.com/api/auth/google/callback` (the localhost one
+  is already done).
+- Set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` in the Render dashboard
+  (the other SSO vars are in `render.yaml`).
+- Deploy + smoke test the live sign-in.
 
-1. Add deps to `requirements.txt`: `authlib`, `itsdangerous` (for SessionMiddleware).
-   Authlib pulls `httpx`.
-2. `main.py`: add `SessionMiddleware(secret_key=SESSION_SECRET, https_only=True,
-   same_site="lax")`; register the auth router; keep CORS/static as-is.
-3. New `routers/auth.py`:
-   - `GET /api/auth/google/login` → Authlib redirect to Google (with `state`).
-   - `GET /api/auth/google/callback` → exchange code, verify ID token, check
-     allowlist, set session, redirect to `/`. On reject → redirect to a
-     `?error=unauthorized` login state.
-   - `POST /api/auth/logout` → clear session.
-   - `GET /api/auth/me` → `{email,name,picture}` or 401.
-4. New `dependencies.require_user` and apply to solar routes.
-5. Config via env (see below). Derive the OAuth redirect from a base URL so local
-   vs prod just differ by env var.
+### Design note (revisit if it bites)
 
-### Frontend work
+Gating the **entire** solar router means the iSolarCloud OAuth *setup* endpoints
+(`/api/solar/auth/*`) now also require a COG session. That's stricter (good) and
+the iSolar callback still works because the admin's browser carries the `Lax`
+session cookie on the redirect. If we ever need those iSolar setup routes reachable
+without a session, move the `require_user` dependency onto the data routes only.
 
-1. `AuthContext` + `useAuth()` → query `GET /api/auth/me` (TanStack Query).
-2. `pages/Login.tsx` — branded landing with a single "Sign in with Google" button
-   that navigates to `/api/auth/google/login`. Show an error if `?error=unauthorized`.
-3. Route guard in `App.tsx`: while loading → spinner; if 401 → `<Login/>`; else the
-   existing `<COGProperties/>` shell. (SPA is still served to everyone; the data is
-   what's actually protected.)
-4. Add a **logout** button + the signed-in user's email/avatar to `TopBar`.
+---
 
-### Environment variables (add to `.env.example` + `render.yaml`)
+## Next session: Make the dashboard mobile-friendly
 
-| Variable               | Notes                                                          |
-| ---------------------- | -------------------------------------------------------------- |
-| `GOOGLE_CLIENT_ID`     | From Google Cloud Console OAuth client.                        |
-| `GOOGLE_CLIENT_SECRET` | "                                                              |
-| `SESSION_SECRET`       | Random 32+ bytes; signs the session cookie. `generateValue` on Render. |
-| `ALLOWED_DOMAIN` or `ALLOWED_EMAILS` | Access allowlist (pick one).                    |
-| `PUBLIC_BASE_URL`      | e.g. `https://cog-dashboard.onrender.com` — to build the redirect URI. |
+### Goal
 
-### Google Cloud Console setup (manual, before coding)
+The app is currently **desktop-only** — no `md:`/`sm:` breakpoints anywhere, a hard
+12-column grid, and a very dense property header. On a phone (~375px) widgets
+collapse to unusable slivers. Make the dashboard usable and legible on phones and
+tablets without redesigning the desktop view.
 
-1. Create/select a project → **APIs & Services → OAuth consent screen**.
-   - **Internal** if COG has Workspace (simplest, auto-restricts to the org);
-     otherwise **External** + add test users.
-2. **Credentials → Create OAuth client ID → Web application**.
-3. Authorized redirect URIs:
-   - `https://<render-url>/api/auth/google/callback`
-   - `http://localhost:8001/api/auth/google/callback` (local dev)
-4. Copy client ID + secret → set as Render env vars.
+### Where we're starting from (audited)
+
+- `index.html` already has `<meta name="viewport" content="width=device-width, initial-scale=1.0">`. ✅
+- Charts use Nivo `Responsive*` (width adapts to container) with a fixed `height: 220`. Width is fine; **x-axis tick density** is the risk on narrow screens.
+- Sidebar is already an off-canvas drawer (`fixed`, `w-64`, `translate-x`, overlay) — good mobile pattern **but nothing opens it** (see bug below).
+
+### Primary blockers (in priority order)
+
+1. **The 12-column grid** — `pages/COGProperties.tsx` uses
+   `grid grid-cols-12 gap-3 p-4` and every widget has a fixed `colSpan` (3/3/6/7/5/4/3/2).
+   `WidgetCard` maps `colSpan` → a fixed `col-span-N` at all sizes.
+   **Fix:** make it responsive. Container → `grid-cols-1 md:grid-cols-12`. Change
+   `WidgetCard` so `colSpan` only applies at `md:` (`md:col-span-N`); on mobile each
+   card is full-width (single column). Add an explicit `md:col-span-*` lookup map so
+   Tailwind JIT emits the classes (same reason the current `COL_SPAN` map is explicit).
+   Consider an intermediate `sm:`/`lg:` tier (e.g. 2-up on small tablets) only if it
+   reads well — single-column mobile is the must-have.
+
+2. **`PropertyHeader.tsx`** — densest component: 3-col grid (`1fr auto 1fr`) packing
+   name+address+badge, three center StatPills (System/Panels/Inverters), and a heavy
+   right block (LastUpdated + per-inverter status list + two LiveStats + chevron).
+   Overflows hard on mobile.
+   **Fix:** restructure for small screens — keep **name + "Now" power + chevron** on
+   the top row; `hidden md:flex` the center StatPills and the LastUpdated/inverter
+   block (or move the pills into the expanded body on mobile). Let the right block
+   wrap instead of using the fixed `width: 176`/`minWidth: 72` desktop widths.
+
+3. **Missing hamburger / menu button (bug)** — `TopBar` receives `onMenuToggle` but
+   **ignores it** (`onMenuToggle: _`) and renders no button, so the Sidebar (property
+   selector + weather refresh) can't be opened at all, on any screen size. On mobile
+   the property selector is essential.
+   **Fix:** add a hamburger button in `TopBar` wired to `onMenuToggle` (show always,
+   or `md:hidden` if we later add a persistent desktop sidebar). Verify the existing
+   overlay/close flow.
+
+### Secondary polish
+
+- **Touch targets**: period toggle (Day/Week/Month), the property `<select>`, and the
+  weather refresh button should be ≥40px tall on mobile. Header rows are already tappable.
+- **Chart axis density**: reduce x-axis tick count on narrow widths (the day view has
+  many time labels) to avoid overlap; check the HTML legends in `GridExport.tsx` /
+  `SchoolConsumption.tsx` wrap rather than overflow.
+- **Horizontal-overflow audit**: hunt fixed pixel widths and `font-mono`/`whitespace-nowrap`
+  runs (PropertyHeader's 176px block, StatPills) — ensure no horizontal scroll at 360px.
+- **TopBar**: email is already `hidden sm:inline`; keep avatar + Sign out visible.
 
 ### Implementation order
 
-1. Google Cloud Console setup (manual) → obtain client id/secret.
-2. Backend: deps + SessionMiddleware + auth router + `require_user` + protect solar routes.
-3. Frontend: AuthContext + Login page + route guard + logout in TopBar.
-4. Wire env vars (`.env.example`, `render.yaml`).
-5. Test locally with the localhost redirect, then deploy + test on Render.
-6. Update `README.md`.
-
-### Decisions to confirm at the start of next session
-
-- **Allowlist model**: Workspace domain restriction vs explicit email list — and the
-  exact domain/emails.
-- **Consent screen**: Internal (Workspace) or External?
-- **Session length** (e.g. 7 days) and whether we need server-side revocation now
-  (cookie-only vs DB sessions).
-- Confirm the production domain to register (still `*.onrender.com`, or the future
-  `app.cognz.com`?).
+1. Fix the menu button in `TopBar` (unblocks the sidebar everywhere). Quick win.
+2. Responsive grid: `COGProperties` container + `WidgetCard` `md:col-span-*` map.
+3. Responsive `PropertyHeader` (the biggest visual lift).
+4. Touch targets + chart tick density + legend wrapping.
+5. Horizontal-overflow pass at 360/390px.
+6. Test in Chrome DevTools responsive (360 / 390 / 768, portrait + landscape).
 
 ### Watch-outs
 
-- Keep `/api/health` public — Render's health check must not be gated.
-- Session cookie must be `Secure` + `httpOnly` + `SameSite=Lax`; relies on Render TLS.
-- Register the redirect URI in Google **exactly** (scheme + host + path), like we hit
-  with the iSolarCloud `redirect_uri`.
-- `/api/auth/*` and the SPA shell stay public; only data routes require the session.
+- Keep the desktop layout pixel-identical at `md:`+ — these are additive breakpoints,
+  not a redesign.
+- `WidgetCard`'s explicit class map exists because Tailwind JIT can't see dynamically
+  built class strings — extend it the same way for the `md:` variants.
+- The dashboard only mounts after auth now (route guard), so test mobile **signed in**.
 
 ---
 
 ## Security cleanup carried over
 
-The previous contents of this file (now deleted) contained a live iSolarCloud
+The original contents of this file (now deleted) contained a live iSolarCloud
 `app_key` in plaintext, and `backend/token_store.json` (with OAuth tokens) is still
-present in **git history**. If the repo is/ becomes public, rotate the iSolarCloud
+present in **git history**. If the repo is/becomes public, rotate the iSolarCloud
 credentials. Going forward, secrets live only in `.env` (gitignored) and the Render
 dashboard.

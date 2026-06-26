@@ -33,7 +33,7 @@ export default function COGProperties() {
           />
 
           {expandedId === property.id && !!property.solar_ps_id && (
-            <div className="grid grid-cols-12 gap-3 p-4 auto-rows-min"
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 p-4 auto-rows-min"
               style={{ background: "#0D0D0D" }}
             >
               {/* ROW 1: Status strip */}
