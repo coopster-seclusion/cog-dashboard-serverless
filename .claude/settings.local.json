@@ -124,7 +124,8 @@
       "Bash(docker rmi *)",
       "Bash(cd \"/c/Users/scgen/cog-dashboard-serverless/backend\" && ls -la | grep -iE \"env|\\\\.json\" ; echo \"--- gitignore \\(root\\) env lines ---\"; grep -iE \"env\" ../.gitignore 2>/dev/null || echo \"\\(no root .gitignore env entries\\)\")",
       "Read(//c/c/Users/scgen/cog-dashboard-serverless/**)",
-      "Bash(python -c \"import main; print\\('app imports OK, routes =', len\\(main.app.routes\\)\\)\")"
+      "Bash(python -c \"import main; print\\('app imports OK, routes =', len\\(main.app.routes\\)\\)\")",
+      "Bash(python -c \"import main; print\\('backend imports OK; routes =', len\\(main.app.routes\\)\\)\")"
     ]
   }
 }
