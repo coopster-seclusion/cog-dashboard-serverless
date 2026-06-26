@@ -18,6 +18,7 @@ Credentials needed in .env:
 """
 
 import logging
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
@@ -87,6 +88,9 @@ class ISolarCloudClient:
         # Persistence backend: injected store (e.g. Postgres) or a local JSON file.
         self._store = token_store or FileTokenStore(token_store_path)
         self._tokens: dict | None = None
+        # Serialises token refresh so concurrent requests after expiry refresh once,
+        # not N times (a second refresh with a rotated refresh_token would fail).
+        self._token_lock = threading.Lock()
         self._load_tokens()
 
     # ------------------------------------------------------------------
@@ -100,6 +104,26 @@ class ISolarCloudClient:
 
     def _save_tokens(self) -> None:
         self._store.save(self._tokens)
+
+    def _store_token_response(self, data: dict, context: str) -> None:
+        """Persist a token response and log its lifetimes (not the token values).
+
+        Logs every field whose name mentions 'expire' (e.g. expires_in, and any
+        refresh-token expiry the API returns) so the real token windows are visible
+        in the logs rather than guessed.
+        """
+        expires_in = data.get("expires_in", 3600)
+        self._tokens = {
+            "access_token":  data["access_token"],
+            "refresh_token": data["refresh_token"],
+            "expires_at":    int(time.time()) + expires_in - 60,
+        }
+        self._save_tokens()
+        expiry_fields = {k: v for k, v in data.items() if "expire" in k.lower()}
+        _log.info(
+            "iSolarCloud: %s — access token valid ~%ss; expiry fields=%s",
+            context, expires_in, expiry_fields or {"expires_in": expires_in},
+        )
 
     # ------------------------------------------------------------------
     # OAuth2 flow
@@ -131,13 +155,7 @@ class ISolarCloudClient:
         data = resp.json()
         if "access_token" not in data:
             raise ISolarCloudError(f"Token exchange failed: {data}")
-        self._tokens = {
-            "access_token":  data["access_token"],
-            "refresh_token": data["refresh_token"],
-            "expires_at":    int(time.time()) + data.get("expires_in", 3600) - 60,
-        }
-        self._save_tokens()
-        _log.info("iSolarCloud: OAuth2 tokens saved.")
+        self._store_token_response(data, "authorised via OAuth code")
 
     def _refresh_tokens(self) -> None:
         if not self._tokens or not self._tokens.get("refresh_token"):
@@ -154,12 +172,7 @@ class ISolarCloudClient:
         data = resp.json()
         if "access_token" not in data:
             raise ISolarCloudError(f"Token refresh failed: {data}")
-        self._tokens = {
-            "access_token":  data["access_token"],
-            "refresh_token": data["refresh_token"],
-            "expires_at":    int(time.time()) + data.get("expires_in", 3600) - 60,
-        }
-        self._save_tokens()
+        self._store_token_response(data, "token refreshed")
 
     @property
     def _access_token(self) -> str:
@@ -168,7 +181,10 @@ class ISolarCloudClient:
                 "Not authorised — open GET /api/solar/auth/url in a browser to start OAuth2 flow."
             )
         if time.time() >= self._tokens["expires_at"]:
-            self._refresh_tokens()
+            with self._token_lock:
+                # Re-check inside the lock: another thread may have just refreshed.
+                if self._tokens and time.time() >= self._tokens["expires_at"]:
+                    self._refresh_tokens()
         return self._tokens["access_token"]
 
     @property
