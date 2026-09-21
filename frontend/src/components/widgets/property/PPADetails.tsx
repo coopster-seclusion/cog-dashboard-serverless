@@ -24,28 +24,35 @@ export default function PPADetails() {
 
   const c = property.contract;
   const now = new Date();
-  const startDate = new Date(c.start_date);
-  const endDate = new Date(c.end_date);
+  const startDate = c.start_date ? new Date(c.start_date) : null;
+  const endDate = c.end_date ? new Date(c.end_date) : null;
 
-  const yearsElapsed = (now.getTime() - startDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-  const yearsRemaining = c.term_years - yearsElapsed;
-  const pct = Math.min((yearsElapsed / c.term_years) * 100, 100);
+  const yearsElapsed = startDate && endDate
+    ? (now.getTime() - startDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+    : null;
+  const yearsRemaining = yearsElapsed === null ? null : c.term_years - yearsElapsed;
+  const pct = yearsElapsed === null ? null : Math.max(0, Math.min((yearsElapsed / c.term_years) * 100, 100));
 
   const fmtDate = (d: Date) =>
     d.toLocaleDateString("en-NZ", { month: "short", year: "numeric" });
+  const fmtMonth = (month?: string) => {
+    if (!month) return "To confirm";
+    const [year, monthNumber] = month.split("-").map(Number);
+    return fmtDate(new Date(year, monthNumber - 1, 1));
+  };
 
   return (
     <div className="px-4 py-3 flex flex-col gap-3">
       <div className="flex flex-col">
         <Row label="Contract Type" value={c.type} />
         <Row label="Term" value={`${c.term_years} years`} />
-        <Row label="Start" value={fmtDate(startDate)} />
-        <Row label="End" value={fmtDate(endDate)} />
-        <Row label="Years Elapsed" value={yearsElapsed.toFixed(1)} />
-        <Row label="Years Remaining" value={yearsRemaining.toFixed(1)} />
+        <Row label="Start" value={startDate ? fmtDate(startDate) : fmtMonth(c.start_month)} />
+        <Row label="End" value={endDate ? fmtDate(endDate) : fmtMonth(c.end_month)} />
+        {yearsElapsed !== null && <Row label="Years Elapsed" value={yearsElapsed.toFixed(1)} />}
+        {yearsRemaining !== null && <Row label="Years Remaining" value={yearsRemaining.toFixed(1)} />}
       </div>
 
-      <div className="flex flex-col gap-1">
+      {pct !== null && startDate && endDate && <div className="flex flex-col gap-1">
         <div className="h-1.5 rounded overflow-hidden" style={{ background: "#1A1A1A" }}>
           <div
             className="h-full rounded"
@@ -57,7 +64,7 @@ export default function PPADetails() {
           <span>{pct.toFixed(1)}% elapsed</span>
           <span>{fmtDate(endDate)}</span>
         </div>
-      </div>
+      </div>}
 
       {c.notes && (
         <p className="text-[9px] italic" style={{ color: "#303030" }}>

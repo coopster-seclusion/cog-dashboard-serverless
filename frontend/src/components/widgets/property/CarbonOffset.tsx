@@ -1,6 +1,7 @@
 import { useProperties } from "@/context/PropertiesContext";
 import { NZ_EMISSION_FACTOR_KG_PER_KWH } from "@/hooks/useWeather";
 import EstimatedBadge from "../shared/EstimatedBadge";
+import { useSolarYTD } from "@/hooks/useSolarYTD";
 
 function getDayOfYear(date: Date): number {
   const start = new Date(date.getFullYear(), 0, 0);
@@ -10,6 +11,7 @@ function getDayOfYear(date: Date): number {
 
 export default function CarbonOffset() {
   const { property } = useProperties();
+  const { data: ytd } = useSolarYTD(property?.solar_ps_id);
 
   if (!property) {
     return (
@@ -20,6 +22,19 @@ export default function CarbonOffset() {
   }
 
   const target = property.system.annual_target_kwh;
+  if (!target) {
+    if (!ytd) {
+      return <div className="px-4 py-4 text-[10px] font-mono text-[#505050]">YTD generation unavailable</div>;
+    }
+    const ytdKg = ytd.ytd_kwh * NZ_EMISSION_FACTOR_KG_PER_KWH;
+    return (
+      <div className="px-4 py-4 flex flex-col gap-3">
+        <div><span className="text-3xl font-bold font-mono text-white tabular-nums">{(ytdKg / 1000).toFixed(1)}</span><span className="text-[12px] font-mono ml-1 text-[#A0A0A0]">t CO₂e YTD</span></div>
+        <div className="text-[10px] text-[#A0A0A0]">Estimate based on measured generation</div>
+        <div className="text-[9px] text-[#505050]">Uses NZ grid average {NZ_EMISSION_FACTOR_KG_PER_KWH} kgCO₂e/kWh</div>
+      </div>
+    );
+  }
   const annualKg = target * NZ_EMISSION_FACTOR_KG_PER_KWH;
   const annualTonnes = annualKg / 1000;
 
