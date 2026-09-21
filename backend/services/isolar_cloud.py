@@ -209,8 +209,20 @@ class ISolarCloudClient:
         )
         resp.raise_for_status()
         data = resp.json()
+        if not isinstance(data, dict):
+            raise ISolarCloudError(f"Invalid iSolarCloud response from {path}: expected an object")
         if "error" in data:
             raise ISolarCloudError(f"API error from {path}: {data}")
+        if data.get("result_data") is None:
+            code = data.get("result_code", "missing")
+            _log.warning(
+                "iSolarCloud returned null result_data for %s (result_code=%s, result_msg=%s)",
+                path, code, str(data.get("result_msg", ""))[:200],
+            )
+            raise ISolarCloudError(
+                f"iSolarCloud returned no data from {path} (result_code={code}); "
+                "verify that this app can access the requested plant"
+            )
         return data
 
     # ------------------------------------------------------------------
