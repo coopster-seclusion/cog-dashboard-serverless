@@ -54,7 +54,7 @@ export default function PropertyHeader({ property, isExpanded, onToggle }: Props
           Hidden on mobile (too dense); surfaced in the expanded body instead. */}
       <div className="hidden md:flex items-center gap-2 px-8">
         <StatPill value={`${property.system.capacity_kw} kW`} label="System" />
-        <StatPill value={`${property.system.panels}`}         label="Panels" />
+        <StatPill value={`${property.system.panels_estimated ? "~" : ""}${property.system.panels}`} label="Panels" />
         <StatPill
           value={`${property.system.inverters} × ${property.system.inverter_kw} kW`}
           label="Inverters"

@@ -1,14 +1,23 @@
 export interface PropertySystem {
   capacity_kw: number;
   panels: number;
+  panels_estimated?: boolean;
+  panel_model?: string;
+  panel_wattage?: number;
   inverters: number;
   inverter_kw: number;
-  peak_output_kw: number;
-  annual_target_kwh: number;
+  inverter_model?: string;
+  inverter_serial?: string;
+  peak_output_kw?: number;
+  annual_target_kwh?: number;
+  annual_target_estimated?: boolean;
+  annual_target_basis?: string;
   performance_ratio: number;
-  orientation: string;
-  tilt_degrees: number;
-  install_date: string;
+  performance_ratio_estimated?: boolean;
+  orientation?: string;
+  tilt_degrees?: number;
+  install_date?: string;
+  connection_date?: string;
   daily_consumption_kwh_estimate?: number;
   consumption_profile?: string;
 }
@@ -16,8 +25,10 @@ export interface PropertySystem {
 export interface PropertyContract {
   type: "PPA" | "lease" | "ownership";
   term_years: number;
-  start_date: string;
-  end_date: string;
+  start_date?: string;
+  end_date?: string;
+  start_month?: string;
+  end_month?: string;
   rate_per_kwh?: number;
   notes?: string;
 }

@@ -1,0 +1,40 @@
+{
+  "id": "beckenham-school",
+  "name": "Beckenham School",
+  "address": "71 Sandwich Road, Beckenham, Christchurch 8023",
+  "coordinates": {
+    "lat": -43.562576,
+    "lng": 172.646447
+  },
+  "type": "school",
+  "system": {
+    "capacity_kw": 73.44,
+    "panels": 144,
+    "panel_model": "AE Solar CMER-108-BDS",
+    "panel_wattage": 510,
+    "inverters": 1,
+    "inverter_kw": 50,
+    "inverter_model": "SG50CX-P2",
+    "inverter_serial": "A2522714790",
+    "annual_target_kwh": 103000,
+    "annual_target_estimated": true,
+    "annual_target_basis": "1,400 kWh per kWp per year, rounded to nearest 1,000 kWh",
+    "performance_ratio": 0.78,
+    "performance_ratio_estimated": true,
+    "connection_date": "2026-07-19"
+  },
+  "contract": {
+    "type": "PPA",
+    "term_years": 25,
+    "start_month": "2026-08",
+    "end_month": "2051-08",
+    "notes": "Exact start day and billing rate to be confirmed"
+  },
+  "solar_ps_id": "1764020",
+  "weather": {
+    "station_name": "Beckenham",
+    "lat": -43.562576,
+    "lng": 172.646447,
+    "timezone": "Pacific/Auckland"
+  }
+}

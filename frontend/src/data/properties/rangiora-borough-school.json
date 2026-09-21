@@ -1,0 +1,41 @@
+{
+  "id": "rangiora-borough-school",
+  "name": "Rangiora Borough School",
+  "address": "64 Church Street, Rangiora 7400",
+  "coordinates": {
+    "lat": -43.30618,
+    "lng": 172.590884
+  },
+  "type": "school",
+  "system": {
+    "capacity_kw": 75.24,
+    "panels": 171,
+    "panels_estimated": true,
+    "panel_model": "AE Solar N type i-TopCon bifacial",
+    "panel_wattage": 440,
+    "inverters": 1,
+    "inverter_kw": 50,
+    "inverter_model": "SG50CX-P2",
+    "inverter_serial": "A2522714789",
+    "annual_target_kwh": 105000,
+    "annual_target_estimated": true,
+    "annual_target_basis": "1,400 kWh per kWp per year, rounded to nearest 1,000 kWh",
+    "performance_ratio": 0.78,
+    "performance_ratio_estimated": true,
+    "connection_date": "2026-07-13"
+  },
+  "contract": {
+    "type": "PPA",
+    "term_years": 25,
+    "start_month": "2026-08",
+    "end_month": "2051-08",
+    "notes": "Exact start day, panel count, and billing rate to be confirmed"
+  },
+  "solar_ps_id": "1761389",
+  "weather": {
+    "station_name": "Rangiora",
+    "lat": -43.30618,
+    "lng": 172.590884,
+    "timezone": "Pacific/Auckland"
+  }
+}

@@ -4,6 +4,8 @@ import manurewaRuralCampus from "@/data/properties/manurewa-rural-campus.json";
 import manurewaIntermediateMain from "@/data/properties/manurewa-intermediate-main.json";
 import manurewaIntermediateGymnasium from "@/data/properties/manurewa-intermediate-gymnasium.json";
 import aquaticCentre from "@/data/properties/aquatic-centre.json";
+import beckenhamSchool from "@/data/properties/beckenham-school.json";
+import rangioraBoroughSchool from "@/data/properties/rangiora-borough-school.json";
 
 const PROPERTY_REGISTRY: Record<string, Property> = {
   "hornby-high-school":              hornbyHighSchool as Property,
@@ -11,6 +13,8 @@ const PROPERTY_REGISTRY: Record<string, Property> = {
   "manurewa-intermediate-main":      manurewaIntermediateMain as Property,
   "manurewa-intermediate-gymnasium": manurewaIntermediateGymnasium as Property,
   "aquatic-centre":                  aquaticCentre as Property,
+  "beckenham-school":                beckenhamSchool as Property,
+  "rangiora-borough-school":         rangioraBoroughSchool as Property,
 };
 
 export function getPropertyById(id: string): Property | null {
