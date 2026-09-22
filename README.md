@@ -86,18 +86,67 @@ automatically.
    `redirect_uri`, `ISOLAR_SERVER`.
 4. Deploy. Render builds the Dockerfile and runs the health check against `/api/health`.
 
-### iSolarCloud OAuth (one-time, in production)
+### iSolarCloud OAuth (initial setup and new plants)
 
-iSolarCloud uses an OAuth2 authorization-code flow that needs a one-time browser consent:
+iSolarCloud uses an OAuth2 authorization-code flow. Initial setup needs browser consent;
+repeat the consent flow when the dashboard needs access to newly added plants. A plant
+being visible in the same iSolarCloud account does **not** automatically add it to an
+existing app authorization.
 
 1. Set `redirect_uri` to `https://<your-render-url>/api/solar/auth/callback` and register that
    **exact** URL with iSolarCloud (it must match character-for-character).
-2. Open `https://<your-render-url>/api/solar/auth/url`, then open the returned consent URL in a
-   browser and approve.
-3. You'll be redirected to the callback; the server exchanges the code and saves tokens.
-4. Verify with `https://<your-render-url>/api/solar/auth/status` → `{"authorised": true}`.
+2. Sign in to the deployed dashboard, open `https://<your-render-url>/api/solar/auth/url`,
+   and open the `url` from its JSON response in the same browser. Confirm the consent page
+   names the intended dashboard application and iSolarCloud account.
+3. Select **all** plants the dashboard should keep using, including existing plants and the
+   new ones, then approve the required API permissions. Do not revoke the old authorization
+   as a troubleshooting shortcut.
+4. The redirect to `/api/solar/auth/callback` should display
+   `Authorised. Tokens saved — solar endpoints are now active.` The server exchanges the
+   code and replaces its stored tokens. Do not share consent URLs, callback URLs containing
+   a `code`, or tokens in issues, logs, or chat.
+5. Check iSolarCloud **Account and security → Authorization management → current COG
+   Dashboard authorization → Authorization details** to confirm the intended plants are
+   authorized. Then verify the deployed dashboard's live data as described below.
+   `/api/solar/auth/status` returning `{"authorised": true}` confirms stored tokens,
+   **not** which plants were granted.
 
 Tokens are stored in Postgres (`DATABASE_URL`), so they survive restarts and redeploys.
+
+### Add a dashboard property
+
+1. Confirm the plant ID (`ps_id`) and inverter serial in iSolarCloud, and gather the site
+   address, installed capacity, panel/inverter specifications, weather location, and PPA
+   terms from their respective source records. Mark estimates with the existing
+   `*_estimated` fields; do not treat an estimated annual target or an unconfirmed PPA
+   rate as an invoice-ready fact.
+2. Copy a comparable file in [`frontend/src/data/properties/`](frontend/src/data/properties/)
+   and set a unique `id`, `name`, address, coordinates, `system`, `contract`, `weather`,
+   and `solar_ps_id`. Follow [`frontend/src/types/property.ts`](frontend/src/types/property.ts)
+   for the supported fields. Register the new JSON import and ID in
+   [`frontend/src/hooks/useProperty.ts`](frontend/src/hooks/useProperty.ts). This registry
+   controls which properties appear in the UI.
+3. Run `npm run build` from `frontend/` and
+   `python -m unittest discover -s tests -v` from `backend/`, then submit the change on
+   a feature branch for review. After merging, confirm Render deployed the merge and
+   that the new property appears on the production dashboard. An appearance with `—`
+   for live values only proves the frontend config deployed; it does not prove API access.
+4. Re-run the [iSolarCloud OAuth flow](#isolarcloud-oauth-initial-setup-and-new-plants),
+   selecting **existing and new** plants. This is needed when the current app grant does
+   not include the new plant, even if the same account can view it in iSolarCloud.
+5. While signed in, check `/api/solar/plants/<ps_id>/devices` and
+   `/api/solar/plants/<ps_id>/realtime` for the new plant, then refresh the dashboard and
+   confirm its inverter, current output, and today's yield populate. Spot-check an older
+   property too. At night, zero output can be normal; a `503` or persistent `—` is not
+   proof of a healthy connection.
+
+The backend's `/api/solar/plants/{plant_id}/...` routes accept any authorized plant ID;
+there is no per-property backend ID list to edit. `/api/solar/plants` is an account-listing
+endpoint, not the frontend registry, and its default iSolarCloud list filter can omit some
+plants. Check the authorization details and direct per-plant endpoints when diagnosing a
+missing site. For example, `getDeviceListByPsId` returning `result_code=1` with null
+`result_data` produced a `503` for schools that were visible in the account but absent
+from the app's earlier grant. Reauthorizing the app for all sites restored their live data.
 
 ### Google SSO (gates the whole dashboard)
 
